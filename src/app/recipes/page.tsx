@@ -146,7 +146,8 @@ export default function RecipesPage() {
             {recipes.map((recipe) => (
               <div
                 key={recipe.id}
-                className="rounded-lg border border-gray-200 bg-white p-6 hover:shadow-lg transition"
+                onClick={() => router.push(`/recipes/${recipe.id}`)}
+                className="rounded-lg border border-gray-200 bg-white p-6 hover:shadow-lg transition cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -166,7 +167,7 @@ export default function RecipesPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Link
                       href={`/recipes/${recipe.id}`}
                       className="text-blue-600 hover:text-blue-800 text-sm"
