@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  password      String // hashed password for credentials provider
+  recipes       Recipe[]
+  mealPlans     MealPlan[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Recipe {
+  id                 String                @id @default(cuid())
+  userId             String
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  instructions       String
+  prepTime           Int? // in minutes
+  cookTime           Int? // in minutes
+  servings           Int?
+  notes              String?
+  dietaryTags        String[] // e.g., ["vegetarian", "gluten-free"]
+  ingredients        RecipeIngredient[]
+  mealPlanRecipes    MealPlanRecipe[]
+  uploadedFileName   String? // original file name if uploaded from file
+  uploadedFileType   String? // file type: docx, pdf, jpg
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([userId])
+}
+
+model RecipeIngredient {
+  id         String   @id @default(cuid())
+  recipeId   String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name       String
+  quantity   Float
+  unit       String // e.g., "cups", "grams", "tsp"
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([recipeId])
+}
+
+model MealPlan {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  startDate      DateTime
+  endDate        DateTime
+  days           MealPlanDay[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([userId])
+}
+
+model MealPlanDay {
+  id          String             @id @default(cuid())
+  mealPlanId  String
+  mealPlan    MealPlan           @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  dayOfWeek   String // "monday", "tuesday", etc.
+  date        DateTime? // specific date if multi-week plan
+  recipes     MealPlanRecipe[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([mealPlanId])
+}
+
+model MealPlanRecipe {
+  id           String        @id @default(cuid())
+  mealPlanDayId String
+  mealPlanDay  MealPlanDay   @relation(fields: [mealPlanDayId], references: [id], onDelete: Cascade)
+  recipeId     String
+  recipe       Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  serveCount   Int           @default(1) // allow for multiple servings on same day
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([mealPlanDayId])
+  @@index([recipeId])
+}
