@@ -169,7 +169,7 @@ export default function RecipesPage() {
                   </div>
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Link
-                      href={`/recipes/${recipe.id}`}
+                      href={`/recipes/${recipe.id}/edit`}
                       className="text-blue-600 hover:text-blue-800 text-sm"
                     >
                       Edit
