@@ -14,7 +14,8 @@
 /coverage
 
 # uploads (test artifacts and user uploads)
-/public/uploads/
+/public/uploads/*
+!/public/uploads/.gitkeep
 
 # next.js
 /.next/
