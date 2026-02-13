@@ -16,6 +16,8 @@ const createRecipeSchema = z.object({
       name: z.string(),
       quantity: z.number(),
       unit: z.string(),
+      canonicalQuantity: z.number().optional(),
+      canonicalUnit: z.string().optional(),
       notes: z.string().optional(),
     })
   ),
@@ -64,7 +66,14 @@ export async function POST(request: NextRequest) {
         notes: validatedData.notes,
         dietaryTags: validatedData.dietaryTags || [],
         ingredients: {
-          create: validatedData.ingredients,
+          create: validatedData.ingredients.map((ing) => ({
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            notes: ing.notes,
+            canonicalQuantity: ing.canonicalQuantity,
+            canonicalUnit: ing.canonicalUnit,
+          })),
         },
       },
       include: { ingredients: true },

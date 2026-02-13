@@ -46,6 +46,8 @@ model RecipeIngredient {
   name       String
   quantity   Float
   unit       String // e.g., "cups", "grams", "tsp"
+  canonicalQuantity Float?
+  canonicalUnit     String?
   notes      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
