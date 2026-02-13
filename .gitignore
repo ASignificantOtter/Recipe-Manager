@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# uploads (test artifacts and user uploads)
+/public/uploads/
+
 # next.js
 /.next/
 /out/
