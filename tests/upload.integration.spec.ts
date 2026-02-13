@@ -11,7 +11,13 @@ vi.mock("mammoth", () => ({
 }));
 
 vi.mock("pdf-parse", () => ({
-  default: vi.fn(async (buf: any) => ({ text: "PDF Title\n- 2 eggs\nInstructions:\nBake" })),
+  PDFParse: class MockPDFParse {
+    constructor(_opts: { data: Buffer }) {}
+    async getText() {
+      return { text: "PDF Title\n- 2 eggs\nInstructions:\nBake" };
+    }
+    async destroy() {}
+  },
 }));
 
 vi.mock("@/lib/uploader/ocr", () => ({

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,8 +19,11 @@ export default function Navigation() {
     return pathname.startsWith(href);
   };
 
+  const { data: session } = useSession();
+
   const links = [
     { href: "/recipes", label: "🍽 Recipes", icon: "📖" },
+    ...(session?.user ? [{ href: "/recipes/upload", label: "⬆️ Upload", icon: "📤" }] : []),
     { href: "/meal-plans", label: "📅 Meal Plans", icon: "🗓" },
     { href: "/shopping-list", label: "🛒 Shopping Lists", icon: "📋" },
     { href: "/auth/signin", label: "👤 Profile", icon: "⚙" },
@@ -105,7 +109,11 @@ export default function Navigation() {
           <div className="border-t-2 border-[var(--border)] p-6">
             <div className="rounded-lg bg-[var(--primary)]/10 p-4">
               <p className="text-xs font-semibold text-[var(--foreground)] opacity-70 mb-3">Quick Access</p>
-              <button className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-dark)] transition-colors">
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-dark)] transition-colors"
+              >
                 🔐 Sign Out
               </button>
             </div>
@@ -162,7 +170,11 @@ export default function Navigation() {
           })}
         </div>
         <div className="border-t-2 border-[var(--border)] p-4">
-          <button className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-dark)] transition-colors">
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-dark)] transition-colors"
+          >
             🔐 Sign Out
           </button>
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 interface Recipe {
   id: string;
@@ -20,6 +21,7 @@ export default function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
 
   useEffect(() => {
     fetchRecipes();
@@ -83,6 +85,15 @@ export default function RecipesPage() {
               >
                 + Add Recipe
               </Link>
+              {/** Show upload only to authenticated users */}
+              {session?.user && (
+                <Link
+                  href="/recipes/upload"
+                  className="rounded-lg border-2 border-[var(--border)] bg-[var(--input-bg)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 active:scale-95 transition-all"
+                >
+                  Upload
+                </Link>
+              )}
               <Link
                 href="/meal-plans"
                 className="text-[var(--foreground)] font-medium hover:text-[var(--primary)] transition-colors"
@@ -133,12 +144,14 @@ export default function RecipesPage() {
               >
                 Create Recipe
               </Link>
-              <Link
-                href="/recipes/upload"
-                className="rounded-lg border-2 border-[var(--border)] bg-[var(--input-bg)] px-5 py-2 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all"
-              >
-                Upload Recipe
-              </Link>
+              {session?.user && (
+                <Link
+                  href="/recipes/upload"
+                  className="rounded-lg border-2 border-[var(--border)] bg-[var(--input-bg)] px-5 py-2 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all"
+                >
+                  Upload Recipe
+                </Link>
+              )}
             </div>
           </div>
         ) : (

@@ -5,7 +5,7 @@ import { join, extname } from "path";
 
 // Parsing libraries
 import mammoth from "mammoth"; // docx
-import pdfParse from "pdf-parse"; // pdf
+// pdf-parse is CommonJS; import dynamically to support ESM runtime
 import { simpleParseRecipe } from "@/lib/uploader/parser";
 import { recognizeImage } from "@/lib/uploader/ocr";
 
@@ -19,55 +19,23 @@ const ALLOWED_TYPES = [
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-function simpleParseRecipe(text: string) {
-  // Very naive parsing: title is first non-empty line
-  const lines = text.split(/\r?\n/).map((l) => l.trim());
-  const title = lines.find((l) => l.length > 0) || "";
-
-  // ingredients: contiguous block of lines containing '-' or numbers or commas after title
-  const ingredients: string[] = [];
-  const instructions: string[] = [];
-  let inIngredients = false;
-  let seenTitle = false;
-
-  for (const line of lines) {
-    if (!seenTitle && line.length > 0) {
-      seenTitle = true;
-      continue; // skip title line from body
-    }
-    if (!line) {
-      if (inIngredients) inIngredients = false;
-      continue;
-    }
-    if (line.startsWith("-") || /^\d+\./.test(line) || /,/.test(line) && line.length < 60) {
-      inIngredients = true;
-    }
-    if (inIngredients) {
-      ingredients.push(line.replace(/^[-\d\.\s]+/, "").trim());
-    } else {
-      instructions.push(line);
-    }
-  }
-
-  return {
-    name: title,
-    ingredients,
-    instructions: instructions.join("\n"),
-  };
-}
-
 async function parseDocx(buffer: Buffer) {
   const result = await mammoth.extractRawText({ buffer });
   return simpleParseRecipe(result.value);
 }
 
 async function parsePdf(buffer: Buffer) {
-  const data = await pdfParse(buffer);
-  return simpleParseRecipe(data.text || "");
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const textResult = await parser.getText();
+    return simpleParseRecipe(textResult?.text ?? "");
+  } finally {
+    await parser.destroy();
+  }
 }
 
 async function parseDoc(buffer: Buffer) {
-  // Best-effort fallback: .doc is binary; try utf8 decode as fallback
   try {
     const text = buffer.toString("utf8");
     return simpleParseRecipe(text);
@@ -122,21 +90,21 @@ export async function POST(request: NextRequest) {
     const ext = extname(file.name).toLowerCase();
     let extractedRecipeData = { name: "", ingredients: [] as string[], instructions: "" };
 
-      try {
-        if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === ".docx") {
-          const parsed = await parseDocx(buffer);
-          extractedRecipeData = simpleParseRecipe(parsed.name + "\n" + parsed.instructions + "\n" + parsed.ingredients.join("\n"));
-        } else if (file.type === "application/pdf" || ext === ".pdf") {
-          const parsed = await parsePdf(buffer);
-          extractedRecipeData = simpleParseRecipe(parsed.instructions || parsed.name || parsed.text || parsed);
-        } else if (file.type === "application/msword" || ext === ".doc") {
-          // Best-effort .doc parsing fallback
-          const parsed = await parseDoc(buffer);
-          extractedRecipeData = simpleParseRecipe(parsed.name + "\n" + parsed.instructions + "\n" + (parsed.ingredients || []).join("\n"));
-        } else if (file.type.startsWith("image/") || ext === ".jpg" || ext === ".jpeg" || ext === ".png") {
-          const parsed = await parseImage(buffer);
-          extractedRecipeData = simpleParseRecipe(parsed.name + "\n" + parsed.instructions + "\n" + (parsed.ingredients || []).join("\n"));
-        }
+    try {
+      if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === ".docx") {
+        const parsed = await parseDocx(buffer);
+        extractedRecipeData = parsed;
+      } else if (file.type === "application/pdf" || ext === ".pdf") {
+        const parsed = await parsePdf(buffer);
+        extractedRecipeData = parsed;
+      } else if (file.type === "application/msword" || ext === ".doc") {
+        // Best-effort .doc parsing fallback
+        const parsed = await parseDoc(buffer);
+        extractedRecipeData = parsed;
+      } else if (file.type.startsWith("image/") || ext === ".jpg" || ext === ".jpeg" || ext === ".png") {
+        const parsed = await parseImage(buffer);
+        extractedRecipeData = parsed;
+      }
     } catch (err) {
       console.error("Parsing error:", err);
     }
