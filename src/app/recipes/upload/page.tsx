@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { parseIngredient, normalizeParsedIngredient } from "@/lib/uploader/ingredientParser";
 
 interface Ingredient {
   name: string;
@@ -16,9 +17,16 @@ export default function UploadRecipePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<{
+    name?: string;
+    ingredients?: string[];
+    instructions?: string;
+  } | null>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: "", quantity: 0, unit: "", notes: "" },
   ]);
+  const [originalIngredients, setOriginalIngredients] = useState<Ingredient[] | null>(null);
+  const [perIngredientCanonical, setPerIngredientCanonical] = useState<Record<number, boolean>>({});
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,13 +64,9 @@ export default function UploadRecipePage() {
       const data = await response.json();
       setUploadedFile(data.filename);
       
-      // Pre-fill form with extracted data if available
-      if (data.extractedRecipeData?.name) {
-        setFormData((prev) => ({
-          ...prev,
-          name: data.extractedRecipeData.name,
-          instructions: data.extractedRecipeData.instructions || "",
-        }));
+      // Store extracted data for user confirmation
+      if (data.extractedRecipeData) {
+        setExtractedData(data.extractedRecipeData);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload file");
@@ -70,6 +74,92 @@ export default function UploadRecipePage() {
       setIsLoading(false);
     }
   };
+
+  // parse ingredient strings into structured fields
+  const applyExtracted = () => {
+    if (!extractedData) return;
+    setFormData((prev) => ({
+      ...prev,
+      name: extractedData.name || prev.name,
+      instructions: extractedData.instructions || prev.instructions,
+    }));
+
+    if (extractedData.ingredients && extractedData.ingredients.length > 0) {
+      // Map string ingredients to Ingredient objects (best-effort)
+      importParsedIngredients(extractedData.ingredients);
+    }
+
+    setExtractedData(null);
+  };
+
+  const importParsedIngredients = (lines: string[]) => {
+    const mapped = lines.map((line) => {
+      const parsed = parseIngredient(line);
+      return {
+        name: parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+        notes: parsed.notes || "",
+      } as Ingredient;
+    });
+    setOriginalIngredients(mapped.map((m) => ({ ...m })));
+    setIngredients(mapped);
+  };
+
+  const normalizeIngredient = (index: number) => {
+    const current = ingredients[index];
+    const parsed = normalizeParsedIngredient({
+      name: current.name,
+      quantity: current.quantity,
+      unit: current.unit,
+      notes: current.notes,
+    } as any);
+
+    const updated = [...ingredients];
+    // if canonicalQuantity exists and unit changed to metric base, show converted value
+    if (parsed.canonicalQuantity && parsed.canonicalUnit) {
+      // show canonical quantity but keep unit as canonicalUnit
+      updated[index] = {
+        ...updated[index],
+        quantity: Math.round(parsed.canonicalQuantity * 100) / 100,
+        unit: parsed.canonicalUnit,
+      };
+    } else if (parsed.canonicalUnit) {
+      updated[index] = { ...updated[index], unit: parsed.canonicalUnit };
+    }
+
+    setIngredients(updated);
+  };
+
+  const normalizeAll = () => {
+    const updated = ingredients.map((ing) => {
+      const parsed = normalizeParsedIngredient(ing as any);
+      if (parsed.canonicalQuantity && parsed.canonicalUnit) {
+        return { ...ing, quantity: Math.round(parsed.canonicalQuantity * 100) / 100, unit: parsed.canonicalUnit } as Ingredient;
+      }
+      if (parsed.canonicalUnit) return { ...ing, unit: parsed.canonicalUnit } as Ingredient;
+      return ing;
+    });
+    setOriginalIngredients(originalIngredients ?? ingredients.map((i) => ({ ...i })));
+    setIngredients(updated);
+  };
+
+  const revertNormalization = () => {
+    if (originalIngredients) {
+      setIngredients(originalIngredients);
+      setOriginalIngredients(null);
+      setPerIngredientCanonical({});
+    }
+  };
+
+  const toggleCanonicalForIngredient = (index: number) => {
+    setPerIngredientCanonical((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const dismissExtracted = () => setExtractedData(null);
 
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -196,6 +286,59 @@ export default function UploadRecipePage() {
                 <p className="mt-3 text-sm text-[var(--success)] font-semibold">✓ File uploaded: {uploadedFile}</p>
               )}
             </div>
+
+            {/* Extracted preview */}
+            {extractedData && (
+              <>
+                <div className="mt-6 rounded-lg border-2 border-[var(--border)] bg-white dark:bg-slate-800 p-4">
+                  <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">Extracted from file</h3>
+                  <div className="text-sm text-[var(--foreground)] opacity-80">
+                    <p className="font-medium">Title</p>
+                    <p className="mb-2">{extractedData.name || <em>Not detected</em>}</p>
+
+                    <p className="font-medium">Ingredients</p>
+                    {extractedData.ingredients && extractedData.ingredients.length > 0 ? (
+                      <ul className="list-disc list-inside mb-2">
+                        {extractedData.ingredients.map((ing, i) => (
+                          <li key={i}>{ing}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mb-2"><em>No ingredients detected</em></p>
+                    )}
+
+                    <p className="font-medium">Instructions (preview)</p>
+                    <p className="whitespace-pre-wrap max-h-36 overflow-auto mb-2">{extractedData.instructions || <em>Not detected</em>}</p>
+                  </div>
+
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      type="button"
+                      onClick={applyExtracted}
+                      className="rounded-lg bg-[var(--primary)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] transition-all"
+                    >
+                      Apply Extracted
+                    </button>
+                    <button
+                      type="button"
+                      onClick={dismissExtracted}
+                      className="rounded-lg border-2 border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--primary)] transition-all"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-3 justify-center">
+                  <button
+                    type="button"
+                    onClick={normalizeAll}
+                    className="rounded-lg border-2 border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--primary)] transition-all"
+                  >
+                    Normalize All Units
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Basic Info */}
@@ -265,6 +408,12 @@ export default function UploadRecipePage() {
                 </div>
               </div>
 
+              <div className="mt-4 flex items-center gap-4">
+                {originalIngredients && (
+                  <button type="button" onClick={revertNormalization} className="text-sm text-[var(--primary)] hover:underline">Revert normalization</button>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
                   Dietary Tags
@@ -290,64 +439,85 @@ export default function UploadRecipePage() {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6">
             <h2 className="text-lg font-semibold mb-6 text-[var(--foreground)]">Ingredients</h2>
             <div className="space-y-4">
-              {ingredients.map((ingredient, index) => (
-                <div key={index} className="flex gap-3 items-end bg-[var(--primary)]/5 p-4 rounded-lg">
-                  <div className="flex-1">
-                    <label className="block text-sm font-semibold text-[var(--foreground)]">
-                      Ingredient
-                    </label>
-                    <input
-                      type="text"
-                      value={ingredient.name}
-                      onChange={(e) =>
-                        handleIngredientChange(index, "name", e.target.value)
-                      }
-                      placeholder="e.g., pasta"
-                      className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
-                    />
-                  </div>
+              {ingredients.map((ingredient, index) => {
+                const isShowingCanonical = perIngredientCanonical[index];
+                const original = originalIngredients?.[index];
+                return (
+                  <div key={index} className="flex gap-3 items-end bg-[var(--primary)]/5 p-4 rounded-lg">
+                    <div className="flex-1">
+                      <label className="block text-sm font-semibold text-[var(--foreground)]">
+                        Ingredient
+                      </label>
+                      <input
+                        type="text"
+                        value={ingredient.name}
+                        onChange={(e) =>
+                          handleIngredientChange(index, "name", e.target.value)
+                        }
+                        placeholder="e.g., pasta"
+                        className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                      />
+                    </div>
 
-                  <div className="w-24">
-                    <label className="block text-sm font-semibold text-[var(--foreground)]">
-                      Qty
-                    </label>
-                    <input
-                      type="number"
-                      value={ingredient.quantity || ""}
-                      onChange={(e) =>
-                        handleIngredientChange(index, "quantity", e.target.value)
-                      }
-                      step="0.1"
-                      min="0"
-                      className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
-                      placeholder="1"
-                    />
-                  </div>
+                    <div className="w-24">
+                      <label className="block text-sm font-semibold text-[var(--foreground)]">
+                        {isShowingCanonical ? "Canonical Qty" : "Qty"}
+                      </label>
+                      <input
+                        type="number"
+                        value={ingredient.quantity || ""}
+                        onChange={(e) =>
+                          handleIngredientChange(index, "quantity", e.target.value)
+                        }
+                        step="0.1"
+                        min="0"
+                        className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                        placeholder="1"
+                      />
+                    </div>
 
-                  <div className="w-28">
-                    <label className="block text-sm font-semibold text-[var(--foreground)]">
-                      Unit
-                    </label>
-                    <input
-                      type="text"
-                      value={ingredient.unit}
-                      onChange={(e) =>
-                        handleIngredientChange(index, "unit", e.target.value)
-                      }
-                      placeholder="cups"
-                      className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
-                    />
-                  </div>
+                    <div className="w-28">
+                      <label className="block text-sm font-semibold text-[var(--foreground)]">
+                        {isShowingCanonical ? "Canonical Unit" : "Unit"}
+                      </label>
+                      <input
+                        type="text"
+                        value={ingredient.unit}
+                        onChange={(e) =>
+                          handleIngredientChange(index, "unit", e.target.value)
+                        }
+                        placeholder="cups"
+                        className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                      />
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(index)}
-                    className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-semibold transition-colors px-3 py-2"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+                    {original && (
+                      <button
+                        type="button"
+                        onClick={() => toggleCanonicalForIngredient(index)}
+                        className="ml-2 text-[var(--primary)] hover:text-[var(--primary-dark)] text-xs font-semibold transition-colors px-2 py-2 whitespace-nowrap"
+                      >
+                        {isShowingCanonical ? "← Original" : "Canonical →"}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(index)}
+                      className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-semibold transition-colors px-3 py-2"
+                    >
+                      ✕
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => normalizeIngredient(index)}
+                      className="ml-2 text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm font-semibold transition-colors px-3 py-2"
+                    >
+                      Normalize
+                    </button>
+                  </div>
+                );
+              })}
               <button
                 type="button"
                 onClick={addIngredient}
