@@ -139,9 +139,9 @@ describe("Shopping List Generation", () => {
 
       // Simulate shopping list generation
       const ingredientMap = new Map();
-      mealPlan.days.forEach((day) => {
-        day.recipes.forEach((mealPlanRecipe) => {
-          mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
+      mealPlan.days.forEach((day: any) => {
+        day.recipes.forEach((mealPlanRecipe: any) => {
+          mealPlanRecipe.recipe.ingredients.forEach((ingredient: any) => {
             const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
             if (ingredientMap.has(key)) {
               const existing = ingredientMap.get(key);
@@ -188,9 +188,9 @@ describe("Shopping List Generation", () => {
 
       // Pasta appears in both Monday and Tuesday recipes
       const ingredientMap = new Map();
-      mealPlan.days.forEach((day) => {
-        day.recipes.forEach((mealPlanRecipe) => {
-          mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
+      mealPlan.days.forEach((day: any) => {
+        day.recipes.forEach((mealPlanRecipe: any) => {
+          mealPlanRecipe.recipe.ingredients.forEach((ingredient: any) => {
             const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
             if (ingredientMap.has(key)) {
               const existing = ingredientMap.get(key);
@@ -272,9 +272,9 @@ describe("Shopping List Generation", () => {
       });
 
       const ingredientMap = new Map();
-      mealPlan.days.forEach((day) => {
-        day.recipes.forEach((mealPlanRecipe) => {
-          mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
+      mealPlan.days.forEach((day: any) => {
+        day.recipes.forEach((mealPlanRecipe: any) => {
+          mealPlanRecipe.recipe.ingredients.forEach((ingredient: any) => {
             const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
             if (ingredientMap.has(key)) {
               const existing = ingredientMap.get(key);
@@ -368,8 +368,8 @@ describe("Shopping List Generation", () => {
 
       const ingredientMap = new Map();
       mealPlanWithNotes.days.forEach((day) => {
-        day.recipes.forEach((mealPlanRecipe) => {
-          mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
+        day.recipes.forEach((mealPlanRecipe: any) => {
+          mealPlanRecipe.recipe.ingredients.forEach((ingredient: any) => {
             const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
             if (ingredientMap.has(key)) {
               const existing = ingredientMap.get(key);
@@ -488,8 +488,8 @@ describe("Shopping List Generation", () => {
 
       const ingredientMap = new Map();
       planWithEmptyDays.days.forEach((day) => {
-        day.recipes.forEach((mealPlanRecipe) => {
-          mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
+        day.recipes.forEach((mealPlanRecipe: any) => {
+          mealPlanRecipe.recipe.ingredients.forEach((ingredient: any) => {
             const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
             if (!ingredientMap.has(key)) {
               ingredientMap.set(key, {
@@ -532,8 +532,8 @@ describe("Shopping List Generation", () => {
 
       const ingredientMap = new Map();
       planWithEmptyRecipe.days.forEach((day) => {
-        day.recipes.forEach((mealPlanRecipe) => {
-          mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
+        day.recipes.forEach((mealPlanRecipe: any) => {
+          mealPlanRecipe.recipe.ingredients.forEach((ingredient: any) => {
             const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
             if (!ingredientMap.has(key)) {
               ingredientMap.set(key, {

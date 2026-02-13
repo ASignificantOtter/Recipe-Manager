@@ -39,7 +39,7 @@ describe("normalizeParsedIngredient", () => {
       const p2 = parseIngredient("2 tablespoon butter");
       const norm1 = normalizeParsedIngredient(p1 as any);
       const norm2 = normalizeParsedIngredient(p2 as any);
-      expect(norm1.canonicalQuantity).toBeCloseTo(norm2.canonicalQuantity, 1);
+      expect((norm1.canonicalQuantity ?? 0)).toBeCloseTo((norm2.canonicalQuantity ?? 0), 1);
     });
 
     it("converts ounces to grams", () => {
@@ -131,7 +131,7 @@ describe("normalizeParsedIngredient", () => {
       const p2 = parseIngredient("1 CUP SUGAR");
       const norm1 = normalizeParsedIngredient(p1 as any);
       const norm2 = normalizeParsedIngredient(p2 as any);
-      expect(norm1.canonicalQuantity).toBeCloseTo(norm2.canonicalQuantity, 1);
+      expect((norm1.canonicalQuantity ?? 0)).toBeCloseTo((norm2.canonicalQuantity ?? 0), 1);
     });
 
     it("handles mixed units in input", () => {
