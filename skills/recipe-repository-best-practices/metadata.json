@@ -1,0 +1,16 @@
+{
+  "name": "Recipe Repository Best Practices",
+  "version": "1.0.0",
+  "organization": "Recipe Repository",
+  "abstract": "A comprehensive skill set for optimizing the Recipe Repository application based on React and Next.js best practices. Covers performance optimization, data fetching, rendering, and advanced patterns.",
+  "categories": [
+    "eliminating-waterfalls",
+    "bundle-size-optimization",
+    "server-side-performance",
+    "client-side-data-fetching",
+    "re-render-optimization",
+    "rendering-performance",
+    "javascript-performance",
+    "advanced-patterns"
+  ]
+}

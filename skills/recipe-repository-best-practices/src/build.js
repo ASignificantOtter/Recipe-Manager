@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+/**
+ * Build script (JavaScript version - no TS required)
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const rulesDir = path.join(__dirname, "../rules");
+const outputDir = path.join(__dirname, "..");
+
+const sectionOrder = {
+  "async": 1,
+  "bundle": 2,
+  "server": 3,
+  "client": 4,
+  "rerender": 5,
+  "rendering": 6,
+  "js": 7,
+  "advanced": 8,
+};
+
+const sectionTitles = {
+  "async": "1. Eliminating Waterfalls",
+  "bundle": "2. Bundle Size Optimization",
+  "server": "3. Server-Side Performance",
+  "client": "4. Client-Side Data Fetching",
+  "rerender": "5. Re-render Optimization",
+  "rendering": "6. Rendering Performance",
+  "js": "7. JavaScript Performance",
+  "advanced": "8. Advanced Patterns",
+};
+
+function parseFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match) throw new Error("Invalid frontmatter");
+
+  const frontmatterStr = match[1];
+  const body = match[2];
+
+  const frontmatter = {
+    title: "",
+    impact: "",
+    tags: "",
+  };
+
+  frontmatterStr.split("\n").forEach((line) => {
+    const colonIndex = line.indexOf(":");
+    if (colonIndex === -1) return;
+    
+    const key = line.substring(0, colonIndex).trim();
+    const value = line.substring(colonIndex + 1).trim();
+
+    if (key === "title") frontmatter.title = value.replace(/^["']|["']$/g, "");
+    if (key === "impact") frontmatter.impact = value;
+    if (key === "impactDescription")
+      frontmatter.impactDescription = value.replace(/^["']|["']$/g, "");
+    if (key === "tags") frontmatter.tags = value;
+  });
+
+  return { frontmatter, body };
+}
+
+function getRuleSection(filename) {
+  const prefix = filename.split("-")[0];
+  return prefix || "advanced";
+}
+
+try {
+  console.log("📦 Building Recipe Repository Best Practices...\n");
+
+  const ruleFiles = fs
+    .readdirSync(rulesDir)
+    .filter((f) => f.endsWith(".md") && !f.startsWith("_"));
+
+  if (ruleFiles.length === 0) {
+    console.warn("⚠️  No rule files found in", rulesDir);
+    process.exit(1);
+  }
+
+  console.log(`✓ Found ${ruleFiles.length} rule files`);
+
+  const rules = ruleFiles.map((filename) => {
+    const content = fs.readFileSync(path.join(rulesDir, filename), "utf-8");
+    const { frontmatter, body } = parseFrontmatter(content);
+    const section = getRuleSection(filename);
+
+    return {
+      id: filename.replace(/\.md$/, ""),
+      section,
+      frontmatter,
+      content: body,
+      filename,
+    };
+  });
+
+  console.log(`✓ Processed ${rules.length} rules`);
+
+  // Build AGENTS.md
+  let output = `# Recipe Repository Best Practices
+
+Agent-optimized best practices guide for Recipe Repository development.  
+**Last updated**: ${new Date().toISOString().split("T")[0]}
+
+## Quick Navigation
+
+`;
+
+  const sections = new Map();
+  const sectionRules = new Map();
+
+  rules.forEach((rule) => {
+    const order = sectionOrder[rule.section];
+    if (!sections.has(order)) {
+      sections.set(order, sectionTitles[rule.section]);
+      sectionRules.set(order, []);
+    }
+    sectionRules.get(order).push(rule);
+  });
+
+  // TOC
+  Array.from(sections.entries())
+    .sort((a, b) => a[0] - b[0])
+    .forEach(([order, title]) => {
+      output += `- **[${title}](#section-${order})**\n`;
+      const rulesInSection = sectionRules.get(order);
+      rulesInSection.sort((a, b) => a.frontmatter.title.localeCompare(b.frontmatter.title));
+      rulesInSection.forEach((rule) => {
+        output += `  - [${rule.frontmatter.title}](#${rule.id})\n`;
+      });
+    });
+
+  output += "\n---\n\n";
+
+  // Full content by section
+  Array.from(sections.entries())
+    .sort((a, b) => a[0] - b[0])
+    .forEach(([order, title]) => {
+      output += `## ${title} {#section-${order}}\n\n`;
+
+      const rulesInSection = sectionRules.get(order);
+      rulesInSection.sort((a, b) => a.frontmatter.title.localeCompare(b.frontmatter.title));
+
+      rulesInSection.forEach((rule, index) => {
+        output += `### ${rule.frontmatter.title} {#${rule.id}}\n\n`;
+        output += `**Impact**: \`${rule.frontmatter.impact}\`\n\n`;
+        if (rule.frontmatter.impactDescription) {
+          output += `${rule.frontmatter.impactDescription}\n\n`;
+        }
+        output += `**Tags**: ${rule.frontmatter.tags}\n\n`;
+        output += rule.content;
+
+        if (index < rulesInSection.length - 1) {
+          output += "\n---\n\n";
+        }
+      });
+
+      output += "\n---\n\n";
+    });
+
+  output += `## Resources & References
+
+- [React Best Practices - React Docs](https://react.dev/learn)
+- [Next.js Performance Documentation](https://nextjs.org/docs/app/building-your-application/optimizing)
+- [Web.dev Performance Guide](https://web.dev/performance/)
+- [MDN Web Performance](https://developer.mozilla.org/en-US/docs/Web/Performance)
+- [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills)
+
+---
+
+Generated by Recipe Repository Best Practices Build System
+`;
+
+  fs.writeFileSync(path.join(outputDir, "AGENTS.md"), output);
+  console.log("✓ Generated AGENTS.md");
+
+  console.log("\n✅ Build complete!\n");
+} catch (error) {
+  console.error("❌ Build failed:", error.message);
+  process.exit(1);
+}
