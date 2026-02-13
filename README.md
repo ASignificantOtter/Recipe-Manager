@@ -269,20 +269,35 @@ tests/
 
 ### Run Tests
 
-Comprehensive unit and integration tests for parsing, ingredient normalization, and OCR:
+Comprehensive unit and integration tests with **113 tests** across **10 test files**:
 
 ```bash
 npm test                    # Run all tests in watch mode
 npm test -- --run          # Run tests once (CI mode)
 ```
 
-Test coverage includes:
-- Recipe text parsing heuristics
-- Ingredient string parsing (quantities, units, fractions, notes)
-- Unit normalization and alias resolution
-- Density-based volume-to-mass conversions
-- OCR preprocessing and recognition
-- Upload endpoint integration
+**Test Coverage:**
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Recipe Management | 19 | CRUD operations, authorization, validation |
+| Meal Plans | 20 | Creation, assignment, deletion, cascading |
+| Shopping Lists | 13 | Aggregation, serving counts, sorting |
+| Ingredient Parsing | 5 | Quantities, units, fractions, notes |
+| Ingredient Normalization | 20 | Unit conversion, density-based conversions |
+| Recipe Parsing | 3 | Text extraction, heuristics |
+| Parser Edge Cases | 31 | Complex formats, fractions, special cases |
+| OCR | 1 | Text recognition |
+| Upload Integration | 1 | File upload and parsing |
+
+**Test Features:**
+- ✅ Recipe text parsing heuristics
+- ✅ Ingredient string parsing (quantities, units, fractions, notes)
+- ✅ Unit normalization and alias resolution
+- ✅ Density-based volume-to-mass conversions
+- ✅ Authorization and ownership verification
+- ✅ Error handling and edge cases
+- ✅ Aggregate operations and cascading deletes
 
 ### View Database
 
