@@ -76,27 +76,27 @@ export default function RecipeDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <p className="text-[var(--foreground)] opacity-60">Loading...</p>
       </div>
     );
   }
 
   if (error || !recipe) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow">
+      <div className="min-h-screen bg-[var(--background)]">
+        <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="h-16 flex items-center">
-              <Link href="/recipes" className="text-blue-600 hover:text-blue-800">
+              <Link href="/recipes" className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors">
                 ← Back to Recipes
               </Link>
             </div>
           </div>
         </nav>
         <main className="mx-auto max-w-4xl py-8 px-4">
-          <div className="rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">
+          <div className="rounded-lg border-l-4 border-[var(--error)] bg-red-50 dark:bg-red-950 p-4">
+            <p className="text-sm font-semibold text-[var(--error)]">
               {error || "Recipe not found"}
             </p>
           </div>
@@ -106,19 +106,25 @@ export default function RecipeDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen bg-[var(--background)]">
+      <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/recipes" className="text-blue-600 hover:text-blue-800">
+              <Link href="/recipes" className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors">
                 ← Back to Recipes
               </Link>
             </div>
             <div className="flex items-center gap-4">
+              <Link
+                href={`/recipes/${id}/edit`}
+                className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors"
+              >
+                Edit
+              </Link>
               <button
                 onClick={handleDelete}
-                className="text-red-600 hover:text-red-800 font-medium"
+                className="text-[var(--error)] font-semibold hover:text-[var(--accent-dark)] transition-colors"
               >
                 Delete
               </button>
@@ -128,15 +134,15 @@ export default function RecipeDetailPage() {
       </nav>
 
       <main className="mx-auto max-w-4xl py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow p-8">
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold">{recipe.name}</h1>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-8">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-[var(--foreground)]">{recipe.name}</h1>
             {recipe.dietaryTags.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {recipe.dietaryTags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800"
+                    className="inline-flex items-center rounded-full bg-[var(--primary)]/15 px-4 py-1 text-xs font-semibold text-[var(--primary)]"
                   >
                     {tag}
                   </span>
@@ -145,40 +151,40 @@ export default function RecipeDetailPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mb-8 pb-8 border-b">
+          <div className="grid grid-cols-3 gap-6 mb-8 pb-8 border-b-2 border-[var(--border)]">
             {recipe.prepTime && (
-              <div>
-                <p className="text-sm text-gray-600">Prep Time</p>
-                <p className="text-lg font-semibold">{recipe.prepTime} min</p>
+              <div className="bg-[var(--primary)]/5 rounded-lg p-4">
+                <p className="text-sm text-[var(--foreground)] opacity-70 font-semibold">⏱ Prep Time</p>
+                <p className="text-2xl font-bold text-[var(--primary)] mt-1">{recipe.prepTime} min</p>
               </div>
             )}
             {recipe.cookTime && (
-              <div>
-                <p className="text-sm text-gray-600">Cook Time</p>
-                <p className="text-lg font-semibold">{recipe.cookTime} min</p>
+              <div className="bg-[var(--accent)]/5 rounded-lg p-4">
+                <p className="text-sm text-[var(--foreground)] opacity-70 font-semibold">🔥 Cook Time</p>
+                <p className="text-2xl font-bold text-[var(--accent)] mt-1">{recipe.cookTime} min</p>
               </div>
             )}
             {recipe.servings && (
-              <div>
-                <p className="text-sm text-gray-600">Servings</p>
-                <p className="text-lg font-semibold">{recipe.servings}</p>
+              <div className="bg-[var(--primary)]/5 rounded-lg p-4">
+                <p className="text-sm text-[var(--foreground)] opacity-70 font-semibold">🍽 Servings</p>
+                <p className="text-2xl font-bold text-[var(--primary)] mt-1">{recipe.servings}</p>
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-8">
             <div>
-              <h2 className="text-2xl font-bold mb-4">Ingredients</h2>
-              <ul className="space-y-2">
+              <h2 className="text-2xl font-bold text-[var(--foreground)] mb-6">Ingredients</h2>
+              <ul className="space-y-3">
                 {recipe.ingredients.map((ingredient) => (
-                  <li key={ingredient.id} className="text-gray-700">
-                    <span className="font-semibold">{ingredient.quantity}</span>
-                    {" "}
-                    <span className="font-semibold">{ingredient.unit}</span>
-                    {" "}
-                    {ingredient.name}
+                  <li key={ingredient.id} className="bg-[var(--primary)]/5 rounded-lg p-4 text-[var(--foreground)]">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-bold text-[var(--primary)]">{ingredient.quantity}</span>
+                      <span className="font-semibold text-[var(--primary)]">{ingredient.unit}</span>
+                      <span className="font-medium">{ingredient.name}</span>
+                    </div>
                     {ingredient.notes && (
-                      <span className="text-gray-500"> ({ingredient.notes})</span>
+                      <span className="text-[var(--foreground)] opacity-60 text-sm mt-1 block"> ({ingredient.notes})</span>
                     )}
                   </li>
                 ))}
@@ -186,14 +192,16 @@ export default function RecipeDetailPage() {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold mb-4">Instructions</h2>
-              <p className="whitespace-pre-wrap text-gray-700">
-                {recipe.instructions}
-              </p>
+              <h2 className="text-2xl font-bold text-[var(--foreground)] mb-6">Instructions</h2>
+              <div className="bg-[var(--accent)]/5 rounded-lg p-6 text-[var(--foreground)]">
+                <p className="whitespace-pre-wrap leading-relaxed">
+                  {recipe.instructions}
+                </p>
+              </div>
               {recipe.notes && (
-                <div className="mt-6 pt-6 border-t">
-                  <p className="text-sm text-gray-600 font-semibold">Notes</p>
-                  <p className="mt-2 text-gray-700">{recipe.notes}</p>
+                <div className="mt-6 pt-6 border-t-2 border-[var(--border)]">
+                  <p className="text-sm text-[var(--foreground)] opacity-70 font-semibold">📝 Notes</p>
+                  <p className="mt-3 text-[var(--foreground)]">{recipe.notes}</p>
                 </div>
               )}
             </div>

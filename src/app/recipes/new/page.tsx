@@ -113,12 +113,12 @@ export default function NewRecipePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen bg-[var(--background)]">
+      <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/recipes" className="text-blue-600 hover:text-blue-800">
+              <Link href="/recipes" className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors flex items-center gap-1">
                 ← Back to Recipes
               </Link>
             </div>
@@ -127,22 +127,22 @@ export default function NewRecipePage() {
       </nav>
 
       <main className="mx-auto max-w-4xl py-8 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold mb-8">Create New Recipe</h1>
+        <h1 className="text-4xl font-bold mb-8 text-[var(--foreground)]">Create New Recipe</h1>
 
         {error && (
-          <div className="mb-6 rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">{error}</p>
+          <div className="mb-6 rounded-lg border-l-4 border-[var(--error)] bg-red-50 dark:bg-red-950 p-4">
+            <p className="text-sm font-semibold text-[var(--error)]">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6">
+            <h2 className="text-lg font-semibold mb-6 text-[var(--foreground)]">Basic Information</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-semibold text-[var(--foreground)]">
                   Recipe Name *
                 </label>
                 <input
@@ -151,13 +151,14 @@ export default function NewRecipePage() {
                   value={formData.name}
                   onChange={handleFormChange}
                   required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                  className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                  placeholder="e.g., Classic Pasta Carbonara"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-semibold text-[var(--foreground)]">
                     Prep Time (min)
                   </label>
                   <input
@@ -166,12 +167,13 @@ export default function NewRecipePage() {
                     value={formData.prepTime}
                     onChange={handleFormChange}
                     min="0"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                    placeholder="30"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-semibold text-[var(--foreground)]">
                     Cook Time (min)
                   </label>
                   <input
@@ -180,12 +182,13 @@ export default function NewRecipePage() {
                     value={formData.cookTime}
                     onChange={handleFormChange}
                     min="0"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                    placeholder="20"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-semibold text-[var(--foreground)]">
                     Servings
                   </label>
                   <input
@@ -194,25 +197,26 @@ export default function NewRecipePage() {
                     value={formData.servings}
                     onChange={handleFormChange}
                     min="1"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                    placeholder="4"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-semibold text-[var(--foreground)] mb-3">
                   Dietary Tags
                 </label>
-                <div className="mt-2 space-y-2">
+                <div className="grid grid-cols-2 gap-3">
                   {dietaryOptions.map((option) => (
-                    <label key={option} className="flex items-center">
+                    <label key={option} className="flex items-center cursor-pointer group">
                       <input
                         type="checkbox"
                         checked={formData.dietaryTags.includes(option)}
                         onChange={() => handleDietaryTagChange(option)}
-                        className="rounded border-gray-300"
+                        className="rounded border-2 border-[var(--border)] checked:bg-[var(--primary)] checked:border-[var(--primary)]"
                       />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">{option}</span>
+                      <span className="ml-3 text-sm text-[var(--foreground)] capitalize font-medium">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -221,13 +225,13 @@ export default function NewRecipePage() {
           </div>
 
           {/* Ingredients */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Ingredients</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6">
+            <h2 className="text-lg font-semibold mb-6 text-[var(--foreground)]">Ingredients</h2>
             <div className="space-y-4">
               {ingredients.map((ingredient, index) => (
-                <div key={index} className="flex gap-4 items-end">
+                <div key={index} className="flex gap-3 items-end bg-[var(--primary)]/5 p-4 rounded-lg">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-semibold text-[var(--foreground)]">
                       Ingredient
                     </label>
                     <input
@@ -236,14 +240,14 @@ export default function NewRecipePage() {
                       onChange={(e) =>
                         handleIngredientChange(index, "name", e.target.value)
                       }
-                      placeholder="e.g., flour"
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                      placeholder="e.g., pasta"
+                      className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                     />
                   </div>
 
                   <div className="w-24">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Quantity
+                    <label className="block text-sm font-semibold text-[var(--foreground)]">
+                      Qty
                     </label>
                     <input
                       type="number"
@@ -253,12 +257,13 @@ export default function NewRecipePage() {
                       }
                       step="0.1"
                       min="0"
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                      className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                      placeholder="1"
                     />
                   </div>
 
-                  <div className="w-32">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="w-28">
+                    <label className="block text-sm font-semibold text-[var(--foreground)]">
                       Unit
                     </label>
                     <input
@@ -267,24 +272,24 @@ export default function NewRecipePage() {
                       onChange={(e) =>
                         handleIngredientChange(index, "unit", e.target.value)
                       }
-                      placeholder="e.g., cups"
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                      placeholder="cups"
+                      className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                     />
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeIngredient(index)}
-                    className="text-red-600 hover:text-red-800 text-sm"
+                    className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-semibold transition-colors px-3 py-2"
                   >
-                    Remove
+                    ✕
                   </button>
                 </div>
               ))}
               <button
                 type="button"
                 onClick={addIngredient}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                className="mt-4 text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm font-semibold transition-colors py-2 px-4 border-2 border-dashed border-[var(--border)] rounded-lg hover:border-[var(--primary)]"
               >
                 + Add Ingredient
               </button>
@@ -292,34 +297,38 @@ export default function NewRecipePage() {
           </div>
 
           {/* Instructions */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Instructions</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6">
+            <h2 className="text-lg font-semibold mb-6 text-[var(--foreground)]">Instructions</h2>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Instructions *
-              </label>
-              <textarea
-                name="instructions"
-                value={formData.instructions}
-                onChange={handleFormChange}
-                required
-                rows={8}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-[var(--foreground)]">
+                  Instructions *
+                </label>
+                <textarea
+                  name="instructions"
+                  value={formData.instructions}
+                  onChange={handleFormChange}
+                  required
+                  rows={8}
+                  className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                  placeholder="Step-by-step instructions..."
+                />
+              </div>
 
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Notes
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleFormChange}
-                rows={4}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-              />
+              <div>
+                <label className="block text-sm font-semibold text-[var(--foreground)]">
+                  Notes
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleFormChange}
+                  rows={4}
+                  className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                  placeholder="Optional notes or tips..."
+                />
+              </div>
             </div>
           </div>
 
@@ -328,13 +337,13 @@ export default function NewRecipePage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               {isLoading ? "Creating..." : "Create Recipe"}
             </button>
             <Link
               href="/recipes"
-              className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"
+              className="flex-1 rounded-lg border-2 border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 text-center transition-all"
             >
               Cancel
             </Link>

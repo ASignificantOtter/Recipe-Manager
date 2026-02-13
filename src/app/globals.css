@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light mode colors */
+  --background: #f8faf8;
+  --foreground: #1a2e1d;
+  --primary: #2d6a4f;
+  --primary-light: #40916c;
+  --primary-dark: #1b4332;
+  --accent: #ff6b35;
+  --accent-light: #ff8c42;
+  --accent-dark: #d84315;
+  --success: #40916c;
+  --warning: #ffb703;
+  --error: #d62828;
+  --border: #d4e7dc;
+  --input-bg: #ffffff;
 }
 
 @theme inline {
@@ -10,27 +22,119 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Custom color palette */
+  --color-primary: {
+    50: #f1f7f4;
+    100: #e8f4f0;
+    200: #c8e6e0;
+    300: #a3d5ca;
+    400: #6db5a8;
+    500: #40916c;
+    600: #2d6a4f;
+    700: #1b4332;
+    800: #0b2618;
+    900: #051d11;
+  };
+  
+  --color-accent: {
+    50: #fff5f0;
+    100: #ffe8d9;
+    200: #ffc9a3;
+    300: #ff9d6d;
+    400: #ff8c42;
+    500: #ff6b35;
+    600: #e84a0f;
+    700: #d84315;
+    800: #9d2800;
+    900: #6b1a00;
+  };
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f1912;
+    --foreground: #e8f5e9;
+    --primary: #66bb6a;
+    --primary-light: #81c784;
+    --primary-dark: #4caf50;
+    --accent: #ff8c42;
+    --accent-light: #ffb088;
+    --accent-dark: #ff6b35;
+    --border: #2d5a3d;
+    --input-bg: #1a3a26;
   }
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
 }
 
-input, textarea {
+input,
+textarea,
+select {
   color: var(--foreground);
-  background-color: var(--background);
+  background-color: var(--input-bg);
+  border: 2px solid var(--border);
+  transition: all 0.2s ease;
 }
 
-input::placeholder, textarea::placeholder {
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
   color: var(--foreground);
-  opacity: 0.6;
+  opacity: 0.5;
+}
+
+/* Remove input autofill background */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: inset 0 0 0 1000px var(--input-bg) !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+}
+
+/* Smooth transitions for interactive elements */
+button,
+a {
+  transition: all 0.2s ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }

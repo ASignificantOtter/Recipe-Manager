@@ -126,27 +126,27 @@ export default function MealPlanDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <p className="text-[var(--foreground)] opacity-60">Loading...</p>
       </div>
     );
   }
 
   if (error || !mealPlan) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow">
+      <div className="min-h-screen bg-[var(--background)]">
+        <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="h-16 flex items-center">
-              <Link href="/meal-plans" className="text-blue-600 hover:text-blue-800">
+              <Link href="/meal-plans" className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors">
                 ← Back to Meal Plans
               </Link>
             </div>
           </div>
         </nav>
         <main className="mx-auto max-w-7xl py-8 px-4">
-          <div className="rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">
+          <div className="rounded-lg border-l-4 border-[var(--error)] bg-red-50 dark:bg-red-950 p-4">
+            <p className="text-sm font-semibold text-[var(--error)]">
               {error || "Meal plan not found"}
             </p>
           </div>
@@ -160,21 +160,21 @@ export default function MealPlanDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen bg-[var(--background)]">
+      <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/meal-plans" className="text-blue-600 hover:text-blue-800">
+              <Link href="/meal-plans" className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors">
                 ← Back to Meal Plans
               </Link>
             </div>
             <div className="flex items-center gap-4">
               <Link
                 href={`/meal-plans/${id}/shopping-list`}
-                className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95"
               >
-                Shopping List
+                🛒 Shopping List
               </Link>
             </div>
           </div>
@@ -183,26 +183,26 @@ export default function MealPlanDetailPage() {
 
       <main className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold">{mealPlan.name}</h1>
+          <h1 className="text-4xl font-bold text-[var(--foreground)]">{mealPlan.name}</h1>
         </div>
 
         {error && (
-          <div className="mb-6 rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">{error}</p>
+          <div className="mb-6 rounded-lg border-l-4 border-[var(--error)] bg-red-50 dark:bg-red-950 p-4">
+            <p className="text-sm font-semibold text-[var(--error)]">{error}</p>
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Add Recipe to Meal Plan</h2>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6 mb-8">
+          <h2 className="text-lg font-semibold mb-6 text-[var(--foreground)]">Add Recipe to Meal Plan</h2>
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                 Select Day
               </label>
               <select
                 value={selectedDay || ""}
                 onChange={(e) => setSelectedDay(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
               >
                 <option value="">Choose a day...</option>
                 {sortedDays.map((day) => (
@@ -214,13 +214,13 @@ export default function MealPlanDetailPage() {
             </div>
 
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
                 Select Recipe
               </label>
               <select
                 value={selectedRecipe || ""}
                 onChange={(e) => setSelectedRecipe(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
               >
                 <option value="">Choose a recipe...</option>
                 {recipes.map((recipe) => (
@@ -233,32 +233,32 @@ export default function MealPlanDetailPage() {
 
             <button
               onClick={handleAddRecipe}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95 transition-all"
             >
-              Add Recipe
+              + Add Recipe
             </button>
           </div>
         </div>
 
         <div className="grid gap-6">
           {sortedDays.map((day) => (
-            <div key={day.id} className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-xl font-semibold mb-4 capitalize">
-                {day.dayOfWeek}
+            <div key={day.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6">
+              <h3 className="text-xl font-semibold mb-6 text-[var(--foreground)] capitalize">
+                📅 {day.dayOfWeek}
               </h3>
               {day.recipes.length === 0 ? (
-                <p className="text-gray-500">No recipes assigned</p>
+                <p className="text-[var(--foreground)] opacity-60">No recipes assigned</p>
               ) : (
                 <ul className="space-y-3">
                   {day.recipes.map((mealPlanRecipe) => (
                     <li
                       key={mealPlanRecipe.id}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                      className="flex justify-between items-center p-4 bg-[var(--primary)]/5 rounded-lg border border-[var(--border)] hover:border-[var(--primary)] transition-all"
                     >
-                      <span className="font-medium">{mealPlanRecipe.recipe.name}</span>
+                      <span className="font-semibold text-[var(--foreground)]">{mealPlanRecipe.recipe.name}</span>
                       <button
                         onClick={() => handleRemoveRecipe(mealPlanRecipe.id)}
-                        className="text-red-600 hover:text-red-800 text-sm"
+                        className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-semibold transition-colors"
                       >
                         Remove
                       </button>

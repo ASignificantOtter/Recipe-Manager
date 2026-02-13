@@ -72,12 +72,12 @@ export default function NewMealPlanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen bg-[var(--background)]">
+      <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/meal-plans" className="text-blue-600 hover:text-blue-800">
+              <Link href="/meal-plans" className="text-[var(--primary)] font-semibold hover:text-[var(--primary-dark)] transition-colors">
                 ← Back to Meal Plans
               </Link>
             </div>
@@ -86,17 +86,17 @@ export default function NewMealPlanPage() {
       </nav>
 
       <main className="mx-auto max-w-2xl py-8 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold mb-8">Create New Meal Plan</h1>
+        <h1 className="text-3xl font-bold mb-8 text-[var(--foreground)]">📅 Create New Meal Plan</h1>
 
         {error && (
-          <div className="mb-6 rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">{error}</p>
+          <div className="mb-6 rounded-lg border-l-4 border-[var(--error)] bg-red-50 dark:bg-red-950 p-4">
+            <p className="text-sm font-semibold text-[var(--error)]">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-8 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-semibold text-[var(--foreground)]">
               Meal Plan Name *
             </label>
             <input
@@ -106,12 +106,12 @@ export default function NewMealPlanPage() {
               onChange={handleFormChange}
               required
               placeholder="e.g., Weekly Meal Plan"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+              className="mt-1 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-3 text-[var(--foreground)] placeholder-[var(--foreground)] opacity-60 shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition dark:bg-slate-700"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-semibold text-[var(--foreground)]">
               Description (optional)
             </label>
             <textarea
@@ -120,13 +120,13 @@ export default function NewMealPlanPage() {
               onChange={handleFormChange}
               rows={3}
               placeholder="e.g., This week's healthy meal plan"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+              className="mt-1 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-3 text-[var(--foreground)] placeholder-[var(--foreground)] opacity-60 shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition dark:bg-slate-700"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-[var(--foreground)]">
                 Start Date *
               </label>
               <input
@@ -135,12 +135,12 @@ export default function NewMealPlanPage() {
                 value={formData.startDate}
                 onChange={handleFormChange}
                 required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="mt-1 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-3 text-[var(--foreground)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition dark:bg-slate-700"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-[var(--foreground)]">
                 End Date *
               </label>
               <input
@@ -149,7 +149,7 @@ export default function NewMealPlanPage() {
                 value={formData.endDate}
                 onChange={handleFormChange}
                 required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="mt-1 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-3 text-[var(--foreground)] shadow-sm focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition dark:bg-slate-700"
               />
             </div>
           </div>
@@ -158,13 +158,13 @@ export default function NewMealPlanPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95 disabled:opacity-50 transition-all"
             >
-              {isLoading ? "Creating..." : "Create Meal Plan"}
+              {isLoading ? "Creating..." : "✓ Create Meal Plan"}
             </button>
             <Link
               href="/meal-plans"
-              className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"
+              className="flex-1 rounded-lg border-2 border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--primary)]/5 text-center transition"
             >
               Cancel
             </Link>

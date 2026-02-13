@@ -78,23 +78,23 @@ export default function MealPlansPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen bg-[var(--background)]">
+      <nav className="border-b-2 border-[var(--border)] bg-white shadow-sm dark:bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold">Recipe Repository</h1>
+              <h1 className="text-2xl font-bold text-[var(--primary)]">🌿 Recipe Repository</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <Link
                 href="/meal-plans/new"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95"
               >
-                Create Meal Plan
+                + Create Meal Plan
               </Link>
               <Link
                 href="/recipes"
-                className="text-gray-600 hover:text-gray-900"
+                className="text-[var(--foreground)] font-medium hover:text-[var(--primary)] transition-colors"
               >
                 Recipes
               </Link>
@@ -104,9 +104,9 @@ export default function MealPlansPage() {
       </nav>
 
       <main className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold">Meal Plans</h2>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold text-[var(--foreground)]">Meal Plans</h2>
+          <p className="mt-2 text-[var(--foreground)] opacity-70">
             {mealPlans.length > 0
               ? `You have ${mealPlans.length} meal plan${mealPlans.length !== 1 ? "s" : ""}`
               : "No meal plans yet."}
@@ -114,25 +114,25 @@ export default function MealPlansPage() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-md bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">{error}</p>
+          <div className="mb-6 rounded-lg border-l-4 border-[var(--error)] bg-red-50 dark:bg-red-950 p-4">
+            <p className="text-sm font-semibold text-[var(--error)]">{error}</p>
           </div>
         )}
 
         {isLoading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Loading meal plans...</p>
+            <p className="text-[var(--foreground)] opacity-60">Loading meal plans...</p>
           </div>
         ) : mealPlans.length === 0 ? (
-          <div className="rounded-md border-2 border-dashed border-gray-300 p-12 text-center">
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No meal plans yet</h3>
-            <p className="mt-2 text-sm text-gray-500">
+          <div className="rounded-lg border-2 border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--primary)]/5 to-[var(--accent)]/5 p-12 text-center">
+            <h3 className="mt-2 text-lg font-semibold text-[var(--foreground)]">No meal plans yet</h3>
+            <p className="mt-2 text-sm text-[var(--foreground)] opacity-60">
               Create a meal plan to start planning your weekly meals.
             </p>
             <div className="mt-6">
               <Link
                 href="/meal-plans/new"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-[var(--primary)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95 transition-all inline-block"
               >
                 Create Meal Plan
               </Link>
@@ -149,40 +149,37 @@ export default function MealPlansPage() {
               return (
                 <div
                   key={mealPlan.id}
-                  className="rounded-lg border border-gray-200 bg-white p-6 hover:shadow-lg transition"
+                  className="rounded-lg border-2 border-[var(--border)] bg-white dark:bg-slate-800 p-6 hover:border-[var(--primary)] hover:shadow-lg transition-all group"
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
                         {mealPlan.name}
                       </h3>
                       {mealPlan.description && (
-                        <p className="mt-1 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-[var(--foreground)] opacity-60">
                           {mealPlan.description}
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 ml-4">
                       <Link
                         href={`/meal-plans/${mealPlan.id}`}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
+                        className="text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm font-medium transition-colors"
                       >
                         View
                       </Link>
                       <button
                         onClick={() => handleDeleteMealPlan(mealPlan.id)}
-                        className="text-red-600 hover:text-red-800 text-sm"
+                        className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-medium transition-colors"
                       >
                         Delete
                       </button>
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p>
-                      {formatDate(mealPlan.startDate)} -{" "}
-                      {formatDate(mealPlan.endDate)}
-                    </p>
-                    <p>{totalRecipes} recipes assigned</p>
+                  <div className="space-y-2 text-sm text-[var(--foreground)] opacity-60">
+                    <p>📅 {formatDate(mealPlan.startDate)} – {formatDate(mealPlan.endDate)}</p>
+                    <p>🍽 {totalRecipes} recipes assigned</p>
                   </div>
                 </div>
               );
