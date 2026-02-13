@@ -86,6 +86,31 @@ Season and roast.`;
       expect(parsed.instructions).toContain("Season");
     });
 
+    it("excludes notes and nutrition from instructions", () => {
+      const text = `Mediterranean-Style Turmeric Lemon Chicken Soup
+
+Ingredients
+1.5 pound boneless chicken breast
+1.5 yellow onion, quartered
+6 large garlic cloves, divided (2 whole, 2 minced)
+
+Instructions
+1. Combine the chicken with water and simmer.
+2. Shred the chicken and strain the broth.
+
+Notes
+Use leftover chicken for a shortcut.
+
+Nutrition
+Calories: 167.9kcal`;
+
+      const parsed = simpleParseRecipe(text as unknown as string);
+      expect(parsed.ingredients.length).toBeGreaterThanOrEqual(3);
+      expect(parsed.instructions).toContain("Combine the chicken");
+      expect(parsed.instructions).not.toContain("Notes");
+      expect(parsed.instructions).not.toContain("Calories");
+    });
+
     it("preserves recipe name casing", () => {
       const text1 = `BEEF STROGANOFF
 Ingredients`;
