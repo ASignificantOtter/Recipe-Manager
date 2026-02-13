@@ -15,6 +15,9 @@ A modern, multi-user recipe management application built with Next.js, React, Ty
   - Automatic recipe structure detection (title, ingredients, instructions)
   - Built-in OCR with Tesseract.js for image and PDF text recognition
   - Image preprocessing (resizing, grayscale normalization) for better OCR accuracy
+- **URL Recipe Import**: Paste a recipe URL and fetch/parse on the server
+  - JSON-LD Recipe parsing when available
+  - HTML-to-text fallback parsing for unsupported pages
 - **Ingredient Intelligence**
   - Smart ingredient parsing: extracts quantity, unit, name, and notes from unstructured text
   - Fraction support: handles mixed fractions (e.g., "1 1/2 cups")
@@ -65,12 +68,14 @@ docker-compose up -d
 ```
 
 This will start a PostgreSQL container with:
+
 - Username: `postgres`
 - Password: `postgres`
 - Database: `recipe_repository`
 - Port: `5432`
 
 Or, if you have PostgreSQL installed locally:
+
 ```bash
 createdb recipe_repository
 ```
@@ -86,6 +91,7 @@ NEXTAUTH_URL="http://localhost:3000"
 ```
 
 Generate a secure NEXTAUTH_SECRET:
+
 ```bash
 openssl rand -base64 32
 ```
@@ -121,17 +127,24 @@ The server will start on `http://localhost:3000` (or fall back to `http://localh
 1. Go to "Your Recipes" section
 2. Click "Create Recipe" to manually add a new recipe, or "Upload Recipe" to extract from files
 3. **Uploading from files**:
+
    - Select a file (.docx, .pdf, .doc, .jpg, or .png)
    - The system automatically extracts recipe title, ingredients, and instructions
    - Preview the extracted data before applying
    - If uploading an image or PDF without embedded text, OCR will extract the text
-4. **Ingredient normalization**:
-   - After uploading or manually entering ingredients, use "Normalize All Units" to standardize measurements
-   - Toggle individual ingredients between original and canonical (normalized) quantities
-   - Click per-ingredient "Normalize" buttons for fine-grained control
-   - Use "Revert normalization" to restore original values
-5. Fill in recipe details and save
-6. View, edit, or delete recipes as needed
+4. **Importing from a URL**:
+
+    - Paste a recipe URL and click "Import URL"
+    - The server extracts JSON-LD Recipe data when available
+    - Falls back to HTML-to-text parsing if JSON-LD is missing
+5. **Ingredient normalization**:
+
+    - After uploading or manually entering ingredients, use "Normalize All Units" to standardize measurements
+    - Toggle individual ingredients between original and canonical (normalized) quantities
+    - Click per-ingredient "Normalize" buttons for fine-grained control
+    - Use "Revert normalization" to restore original values
+6. Fill in recipe details and save
+7. View, edit, or delete recipes as needed
 
 ### Creating a Meal Plan
 
@@ -150,7 +163,7 @@ The server will start on `http://localhost:3000` (or fall back to `http://localh
 
 ## Project Structure
 
-```
+```text
 src/
 ├── app/
 │   ├── api/
@@ -158,6 +171,7 @@ src/
 │   │   ├── recipes/                           # Recipe API routes
 │   │   │   ├── route.ts                      # GET/POST recipes
 │   │   │   ├── [id]/route.ts                 # GET/PUT/DELETE specific recipe
+│   │   │   ├── import-url/route.ts            # URL import & parsing endpoint
 │   │   │   ├── upload/route.ts               # File upload & parsing endpoint
 │   │   │   └── upload/route.ts               # Handles .docx, .pdf, .doc, .jpg, .png
 │   │   └── meal-plans/                        # Meal plan API routes
@@ -209,18 +223,21 @@ tests/
 ├── ingredient.spec.ts                        # Ingredient parser unit tests
 ├── ingredientNormalization.spec.ts           # Unit normalization tests
 ├── ocr.spec.ts                               # OCR functionality tests
+├── importUrl.spec.ts                          # URL import tests
 └── upload.integration.spec.ts                # Integration tests
 ```
 
 ## Database Schema
 
 ### User
+
 - `id`: Unique identifier
 - `email`: Unique email address
 - `name`: User's name
 - `password`: Hashed password
 
 ### Recipe
+
 - `id`: Unique identifier
 - `userId`: Reference to user
 - `name`: Recipe name
@@ -234,6 +251,7 @@ tests/
 - Relationships: `RecipeIngredient`, `MealPlanRecipe`
 
 ### RecipeIngredient
+
 - `id`: Unique identifier
 - `recipeId`: Reference to recipe
 - `name`: Ingredient name
@@ -244,6 +262,7 @@ tests/
 - `notes`: Optional notes (e.g., "minced", "diced")
 
 ### MealPlan
+
 - `id`: Unique identifier
 - `userId`: Reference to user
 - `name`: Meal plan name
@@ -253,12 +272,14 @@ tests/
 - Relationships: `MealPlanDay`
 
 ### MealPlanDay
+
 - `id`: Unique identifier
 - `mealPlanId`: Reference to meal plan
 - `dayOfWeek`: Day name (Monday-Sunday)
 - Relationships: `MealPlanRecipe`
 
 ### MealPlanRecipe
+
 - `id`: Unique identifier
 - `mealPlanDayId`: Reference to meal plan day
 - `recipeId`: Reference to recipe
@@ -279,7 +300,7 @@ npm test -- --run          # Run tests once (CI mode)
 **Test Coverage:**
 
 | Category | Tests | Coverage |
-|----------|-------|----------|
+| --- | --- | --- |
 | Recipe Management | 19 | CRUD operations, authorization, validation |
 | Meal Plans | 20 | Creation, assignment, deletion, cascading |
 | Shopping Lists | 13 | Aggregation, serving counts, sorting |
@@ -291,6 +312,7 @@ npm test -- --run          # Run tests once (CI mode)
 | Upload Integration | 1 | File upload and parsing |
 
 **Test Features:**
+
 - ✅ Recipe text parsing heuristics
 - ✅ Ingredient string parsing (quantities, units, fractions, notes)
 - ✅ Unit normalization and alias resolution
@@ -327,12 +349,14 @@ npm run start
 ## Future Enhancements
 
 Completed Features:
+
 - ✅ Advanced file parsing for recipe extraction (.docx, .pdf, .jpg with OCR)
 - ✅ Ingredient parsing and normalization with unit standardization
 - ✅ Density-based volume-to-mass conversions
 - ✅ Per-ingredient canonical/original toggle UI
 
 Planned Features:
+
 - [ ] Expand ingredient density table (onion, carrot, baking powder, yeast, etc.)
 - [ ] Recipe scaling (dynamically adjust servings and ingredient quantities)
 - [ ] Nutritional information integration (calories, macros, micros per serving)
@@ -381,15 +405,18 @@ The upload feature includes intelligent ingredient parsing and optional metric s
 ## Troubleshooting
 
 ### Database connection errors
+
 - Ensure PostgreSQL is running
 - Verify DATABASE_URL is correct
 - Check firewall settings
 
 ### "Table not found" errors
+
 - Run `npx prisma migrate dev` to apply pending migrations
 - Or reset the database: `npx prisma migrate reset`
 
 ### NextAuth session issues
+
 - Regenerate NEXTAUTH_SECRET: `openssl rand -base64 32`
 - Clear browser cookies and try again
 
