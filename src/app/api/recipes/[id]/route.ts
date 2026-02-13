@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -24,23 +25,30 @@ const updateRecipeSchema = z.object({
     .optional(),
 });
 
+// Cache recipe fetching for per-request deduplication
+const getRecipeById = cache(async (id: string) => {
+  return prisma.recipe.findUnique({
+    where: { id },
+    include: { ingredients: true },
+  });
+});
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth and params
+    const [session, { id }] = await Promise.all([
+      auth(),
+      params,
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
-
-    const recipe = await prisma.recipe.findUnique({
-      where: { id },
-      include: { ingredients: true },
-    });
+    const recipe = await getRecipeById(id);
 
     if (!recipe) {
       return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
@@ -63,13 +71,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth, params, and body parsing
+    const [session, { id }, body] = await Promise.all([
+      auth(),
+      params,
+      request.json(),
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id } = await params;
 
     // Verify ownership
     const recipe = await prisma.recipe.findUnique({ where: { id } });
@@ -77,7 +88,6 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
     const { ingredients, ...recipeData } = body;
     
     const validatedData = updateRecipeSchema.parse({ ...recipeData, ingredients });
@@ -111,11 +121,11 @@ export async function PUT(
         },
       });
 
-      // Upsert ingredients
-      for (const ingredient of validatedData.ingredients) {
+      // Upsert ingredients in parallel
+      const ingredientPromises = validatedData.ingredients.map((ingredient) => {
         if (ingredient.id) {
           // Update existing ingredient
-          await prisma.recipeIngredient.update({
+          return prisma.recipeIngredient.update({
             where: { id: ingredient.id },
             data: {
               name: ingredient.name,
@@ -126,7 +136,7 @@ export async function PUT(
           });
         } else {
           // Create new ingredient
-          await prisma.recipeIngredient.create({
+          return prisma.recipeIngredient.create({
             data: {
               recipeId: id,
               name: ingredient.name,
@@ -136,7 +146,9 @@ export async function PUT(
             },
           });
         }
-      }
+      });
+      
+      await Promise.all(ingredientPromises);
     }
 
     // Fetch updated recipe with ingredients
@@ -160,13 +172,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth and params
+    const [session, { id }] = await Promise.all([
+      auth(),
+      params,
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id } = await params;
 
     // Verify ownership
     const recipe = await prisma.recipe.findUnique({ where: { id } });

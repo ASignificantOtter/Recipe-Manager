@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, memo, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useMealPlans } from "@/lib/hooks/useSWR";
 
 interface MealPlan {
   id: string;
@@ -19,42 +19,77 @@ interface MealPlan {
   }>;
 }
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString();
+};
+
+const MealPlanCard = memo(({
+  mealPlan,
+  totalRecipes,
+  onDelete,
+}: {
+  mealPlan: MealPlan;
+  totalRecipes: number;
+  onDelete: (id: string) => void;
+}) => (
+  <div
+    className="rounded-lg border-2 border-[var(--border)] bg-white dark:bg-slate-800 p-6 hover:border-[var(--primary)] hover:shadow-lg transition-all group cv-card"
+  >
+    <div className="flex justify-between items-start mb-4">
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
+          {mealPlan.name}
+        </h3>
+        {mealPlan.description && (
+          <p className="mt-2 text-sm text-[var(--foreground)] opacity-60">
+            {mealPlan.description}
+          </p>
+        )}
+      </div>
+      <div className="flex gap-3 ml-4">
+        <Link
+          href={`/meal-plans/${mealPlan.id}`}
+          className="text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm font-medium transition-colors"
+        >
+          View
+        </Link>
+        <button
+          onClick={() => onDelete(mealPlan.id)}
+          className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-medium transition-colors"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+    <div className="space-y-2 text-sm text-[var(--foreground)] opacity-60">
+      <p>📅 {formatDate(mealPlan.startDate)} – {formatDate(mealPlan.endDate)}</p>
+      <p>🍽 {totalRecipes} recipes assigned</p>
+    </div>
+  </div>
+));
+MealPlanCard.displayName = "MealPlanCard";
+
 export default function MealPlansPage() {
-  const router = useRouter();
-  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { mealPlans, isLoading, isError, mutate } = useMealPlans();
 
-  useEffect(() => {
-    fetchMealPlans();
-  }, []);
+  const mealPlansList: MealPlan[] = mealPlans || [];
 
-  const fetchMealPlans = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/meal-plans");
-      
-      if (response.status === 401) {
-        router.push("/auth/signin");
-        return;
-      }
+  const mealPlansWithTotals = useMemo(() => {
+    return mealPlansList.map((mealPlan: MealPlan) => ({
+      mealPlan,
+      totalRecipes: mealPlan.days.reduce(
+        (sum, day) => sum + day.recipes.length,
+        0
+      ),
+    }));
+  }, [mealPlansList]);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch meal plans");
-      }
-
-      const data = await response.json();
-      setMealPlans(data);
-    } catch (err) {
-      setError("Failed to load meal plans");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteMealPlan = async (id: string) => {
+  const handleDeleteMealPlan = useCallback(async (id: string) => {
     if (!confirm("Are you sure you want to delete this meal plan?")) return;
+
+    const optimisticMealPlans = mealPlansList.filter((m) => m.id !== id);
+    mutate(optimisticMealPlans, { revalidate: false });
 
     try {
       const response = await fetch(`/api/meal-plans/${id}`, {
@@ -65,17 +100,14 @@ export default function MealPlansPage() {
         throw new Error("Failed to delete meal plan");
       }
 
-      setMealPlans(mealPlans.filter((m) => m.id !== id));
+      mutate();
     } catch (err) {
-      setError("Failed to delete meal plan");
       console.error(err);
+      mutate();
     }
-  };
+  }, [mealPlansList, mutate]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
+  const error = isError ? "Failed to load meal plans" : null;
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -107,8 +139,8 @@ export default function MealPlansPage() {
         <div className="mb-8">
           <h2 className="text-4xl font-bold text-[var(--foreground)]">Meal Plans</h2>
           <p className="mt-2 text-[var(--foreground)] opacity-70">
-            {mealPlans.length > 0
-              ? `You have ${mealPlans.length} meal plan${mealPlans.length !== 1 ? "s" : ""}`
+            {mealPlansList.length > 0
+              ? `You have ${mealPlansList.length} meal plan${mealPlansList.length !== 1 ? "s" : ""}`
               : "No meal plans yet."}
           </p>
         </div>
@@ -119,73 +151,45 @@ export default function MealPlansPage() {
           </div>
         )}
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-[var(--foreground)] opacity-60">Loading meal plans...</p>
-          </div>
-        ) : mealPlans.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--primary)]/5 to-[var(--accent)]/5 p-12 text-center">
-            <h3 className="mt-2 text-lg font-semibold text-[var(--foreground)]">No meal plans yet</h3>
-            <p className="mt-2 text-sm text-[var(--foreground)] opacity-60">
-              Create a meal plan to start planning your weekly meals.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/meal-plans/new"
-                className="rounded-lg bg-[var(--primary)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95 transition-all inline-block"
-              >
-                Create Meal Plan
-              </Link>
+        <Suspense
+          fallback={(
+            <div className="text-center py-12">
+              <p className="text-[var(--foreground)] opacity-60">Loading meal plans...</p>
             </div>
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-            {mealPlans.map((mealPlan) => {
-              const totalRecipes = mealPlan.days.reduce(
-                (sum, day) => sum + day.recipes.length,
-                0
-              );
-
-              return (
-                <div
-                  key={mealPlan.id}
-                  className="rounded-lg border-2 border-[var(--border)] bg-white dark:bg-slate-800 p-6 hover:border-[var(--primary)] hover:shadow-lg transition-all group"
+          )}
+        >
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-[var(--foreground)] opacity-60">Loading meal plans...</p>
+            </div>
+          ) : mealPlansList.length === 0 ? (
+            <div className="rounded-lg border-2 border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--primary)]/5 to-[var(--accent)]/5 p-12 text-center">
+              <h3 className="mt-2 text-lg font-semibold text-[var(--foreground)]">No meal plans yet</h3>
+              <p className="mt-2 text-sm text-[var(--foreground)] opacity-60">
+                Create a meal plan to start planning your weekly meals.
+              </p>
+              <div className="mt-6">
+                <Link
+                  href="/meal-plans/new"
+                  className="rounded-lg bg-[var(--primary)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] active:scale-95 transition-all inline-block"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
-                        {mealPlan.name}
-                      </h3>
-                      {mealPlan.description && (
-                        <p className="mt-2 text-sm text-[var(--foreground)] opacity-60">
-                          {mealPlan.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-3 ml-4">
-                      <Link
-                        href={`/meal-plans/${mealPlan.id}`}
-                        className="text-[var(--primary)] hover:text-[var(--primary-dark)] text-sm font-medium transition-colors"
-                      >
-                        View
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteMealPlan(mealPlan.id)}
-                        className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-medium transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm text-[var(--foreground)] opacity-60">
-                    <p>📅 {formatDate(mealPlan.startDate)} – {formatDate(mealPlan.endDate)}</p>
-                    <p>🍽 {totalRecipes} recipes assigned</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  Create Meal Plan
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+              {mealPlansWithTotals.map(({ mealPlan, totalRecipes }) => (
+                <MealPlanCard
+                  key={mealPlan.id}
+                  mealPlan={mealPlan}
+                  totalRecipes={totalRecipes}
+                  onDelete={handleDeleteMealPlan}
+                />
+              ))}
+            </div>
+          )}
+        </Suspense>
       </main>
     </div>
   );

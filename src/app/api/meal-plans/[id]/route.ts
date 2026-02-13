@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,31 +16,38 @@ const addRecipeSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Cache meal plan fetching for per-request deduplication
+const getMealPlanById = cache(async (id: string) => {
+  return prisma.mealPlan.findUnique({
+    where: { id },
+    include: {
+      days: {
+        include: {
+          recipes: {
+            include: { recipe: true },
+          },
+        },
+      },
+    },
+  });
+});
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth and params
+    const [session, { id }] = await Promise.all([
+      auth(),
+      params,
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
-
-    const mealPlan = await prisma.mealPlan.findUnique({
-      where: { id },
-      include: {
-        days: {
-          include: {
-            recipes: {
-              include: { recipe: true },
-            },
-          },
-        },
-      },
-    });
+    const mealPlan = await getMealPlanById(id);
 
     if (!mealPlan) {
       return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
@@ -61,20 +69,22 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth, params, and body parsing
+    const [session, { id }, body] = await Promise.all([
+      auth(),
+      params,
+      request.json(),
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id } = await params;
 
     const mealPlan = await prisma.mealPlan.findUnique({ where: { id } });
     if (!mealPlan || mealPlan.userId !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
     const validatedData = updateMealPlanSchema.parse(body);
 
     const updatedMealPlan = await prisma.mealPlan.update({
@@ -106,13 +116,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth and params
+    const [session, { id }] = await Promise.all([
+      auth(),
+      params,
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id } = await params;
 
     const mealPlan = await prisma.mealPlan.findUnique({ where: { id } });
     if (!mealPlan || mealPlan.userId !== session.user.id) {
@@ -133,20 +145,22 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    // Parallelize auth, params, and body parsing
+    const [session, { id }, body] = await Promise.all([
+      auth(),
+      params,
+      request.json(),
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id } = await params;
 
     const mealPlan = await prisma.mealPlan.findUnique({ where: { id } });
     if (!mealPlan || mealPlan.userId !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
     const { action, ...data } = body;
 
     if (action === "addRecipe") {
