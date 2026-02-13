@@ -15,9 +15,12 @@ interface Ingredient {
 export default function UploadRecipePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUrlLoading, setIsUrlLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [parsingWarning, setParsingWarning] = useState<string | null>(null);
+  const [importUrl, setImportUrl] = useState("");
   const [extractedData, setExtractedData] = useState<{
     name?: string;
     ingredients?: string[];
@@ -77,6 +80,40 @@ export default function UploadRecipePage() {
       setIsLoading(false);
     }
   }, []);
+
+  const handleUrlImport = useCallback(async () => {
+    if (!importUrl.trim()) {
+      setUrlError("Please enter a URL");
+      return;
+    }
+
+    setIsUrlLoading(true);
+    setUrlError(null);
+    setParsingWarning(null);
+
+    try {
+      const response = await fetch("/api/recipes/import-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: importUrl.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to import from URL");
+      }
+
+      const data = await response.json();
+      setParsingWarning(data.parsingWarning ?? null);
+      if (data.extractedRecipeData) {
+        setExtractedData(data.extractedRecipeData);
+      }
+    } catch (err) {
+      setUrlError(err instanceof Error ? err.message : "Failed to import from URL");
+    } finally {
+      setIsUrlLoading(false);
+    }
+  }, [importUrl]);
 
   const importParsedIngredients = useCallback(async (lines: string[]) => {
     const { parseIngredient } = await loadParserUtils();
@@ -299,6 +336,32 @@ export default function UploadRecipePage() {
               {parsingWarning && (
                 <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 font-medium" role="status">
                   {parsingWarning}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-lg border-2 border-[var(--border)] bg-white dark:bg-slate-800 p-4">
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">Import from URL</h3>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="url"
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  placeholder="https://example.com/recipe"
+                  className="flex-1 rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={handleUrlImport}
+                  disabled={isUrlLoading}
+                  className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isUrlLoading ? "Importing..." : "Import URL"}
+                </button>
+              </div>
+              {urlError && (
+                <p className="mt-2 text-sm text-[var(--error)] font-medium" role="status">
+                  {urlError}
                 </p>
               )}
             </div>
