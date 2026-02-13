@@ -83,7 +83,7 @@ export default function MealPlansPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-[var(--primary)]">🌿 Recipe Repository</h1>
+              <h1 className="text-2xl font-bold text-[var(--primary)]">🌿 Recipe Hub</h1>
             </div>
             <div className="flex items-center gap-6">
               <Link

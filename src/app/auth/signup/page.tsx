@@ -58,7 +58,7 @@ export default function SignUp() {
       <div className="w-full max-w-md space-y-8 bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8">
         <div>
           <h2 className="text-center text-4xl font-bold text-[var(--primary)]">
-            🌿 Recipe Repository
+            🌿 Recipe Hub
           </h2>
           <p className="mt-2 text-center text-sm text-[var(--foreground)] opacity-70">
             Create your account to get started

@@ -44,7 +44,7 @@ function SignInContent() {
       <div className="w-full max-w-md space-y-8 bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8">
         <div>
           <h2 className="text-center text-4xl font-bold text-[var(--primary)] tracking-tight">
-            🌿 Recipe Repository
+            🌿 Recipe Hub
           </h2>
           <p className="mt-2 text-center text-sm text-[var(--foreground)] opacity-70">
             Sign in to manage your recipes
