@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -9,7 +9,17 @@ export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  const isActive = (href: string) => {
+  const { data: session } = useSession();
+
+  const toggleMenu = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const isActive = useCallback((href: string) => {
     if (href === "/meal-plans") {
       return pathname.startsWith("/meal-plans") && !pathname.includes("/shopping-list");
     }
@@ -17,23 +27,23 @@ export default function Navigation() {
       return pathname.includes("/shopping-list");
     }
     return pathname.startsWith(href);
-  };
+  }, [pathname]);
 
-  const { data: session } = useSession();
-
-  const links = [
-    { href: "/recipes", label: "🍽 Recipes", icon: "📖" },
-    ...(session?.user ? [{ href: "/recipes/upload", label: "⬆️ Upload", icon: "📤" }] : []),
-    { href: "/meal-plans", label: "📅 Meal Plans", icon: "🗓" },
-    { href: "/shopping-list", label: "🛒 Shopping Lists", icon: "📋" },
-    { href: "/auth/signin", label: "👤 Profile", icon: "⚙" },
-  ];
+  const links = useMemo(() => {
+    return [
+      { href: "/recipes", label: "🍽 Recipes", icon: "📖" },
+      ...(session?.user ? [{ href: "/recipes/upload", label: "⬆️ Upload", icon: "📤" }] : []),
+      { href: "/meal-plans", label: "📅 Meal Plans", icon: "🗓" },
+      { href: "/shopping-list", label: "🛒 Shopping Lists", icon: "📋" },
+      { href: "/auth/signin", label: "👤 Profile", icon: "⚙" },
+    ];
+  }, [session?.user]);
 
   return (
     <>
       {/* Hamburger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleMenu}
         className="fixed top-4 left-4 z-50 rounded-lg bg-[var(--primary)] p-3 text-white hover:bg-[var(--primary-dark)] transition-colors shadow-lg md:hidden"
         aria-label="Toggle navigation"
       >
@@ -65,7 +75,7 @@ export default function Navigation() {
       {isOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setIsOpen(false)}
+          onClick={closeMenu}
         />
       )}
 
@@ -91,7 +101,8 @@ export default function Navigation() {
                 <Link
                   key={link.href}
                   href={href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeMenu}
+                  prefetch={true}
                   className={`flex items-center gap-3 rounded-lg px-4 py-3 font-semibold transition-all ${
                     active
                       ? "bg-[var(--primary)] text-white shadow-md"
@@ -134,6 +145,7 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 href={href}
+                  prefetch={true}
                 className={`font-semibold transition-colors ${
                   active
                     ? "text-[var(--primary)] border-b-2 border-[var(--primary)]"
@@ -157,6 +169,7 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 href={href}
+                prefetch={true}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 font-semibold transition-all ${
                   active
                     ? "bg-[var(--primary)] text-white shadow-md"

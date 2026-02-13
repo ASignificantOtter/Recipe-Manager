@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
+import { useRecipe } from "@/lib/hooks/useSWR";
 
 interface Recipe {
   id: string;
@@ -28,34 +28,9 @@ export default function RecipeDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { recipe, isLoading, isError } = useRecipe(id);
 
-  useEffect(() => {
-    fetchRecipe();
-  }, [id]);
-
-  const fetchRecipe = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/recipes/${id}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch recipe");
-      }
-
-      const data = await response.json();
-      setRecipe(data);
-    } catch (err) {
-      setError("Failed to load recipe");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!confirm("Are you sure you want to delete this recipe?")) return;
 
     try {
@@ -69,10 +44,11 @@ export default function RecipeDetailPage() {
 
       router.push("/recipes");
     } catch (err) {
-      setError("Failed to delete recipe");
       console.error(err);
     }
-  };
+  }, [id, router]);
+
+  const error = isError ? "Failed to load recipe" : null;
 
   if (isLoading) {
     return (
@@ -139,7 +115,7 @@ export default function RecipeDetailPage() {
             <h1 className="text-4xl font-bold text-[var(--foreground)]">{recipe.name}</h1>
             {recipe.dietaryTags.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
-                {recipe.dietaryTags.map((tag) => (
+                {recipe.dietaryTags.map((tag: string) => (
                   <span
                     key={tag}
                     className="inline-flex items-center rounded-full bg-[var(--primary)]/15 px-4 py-1 text-xs font-semibold text-[var(--primary)]"
@@ -176,7 +152,7 @@ export default function RecipeDetailPage() {
             <div>
               <h2 className="text-2xl font-bold text-[var(--foreground)] mb-6">Ingredients</h2>
               <ul className="space-y-3">
-                {recipe.ingredients.map((ingredient) => (
+                {recipe.ingredients.map((ingredient: { id: string; name: string; quantity: number; unit: string; notes?: string }) => (
                   <li key={ingredient.id} className="bg-[var(--primary)]/5 rounded-lg p-4 text-[var(--foreground)]">
                     <div className="flex items-baseline gap-2">
                       <span className="font-bold text-[var(--primary)]">{ingredient.quantity}</span>

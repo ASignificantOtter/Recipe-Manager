@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useMealPlan, useRecipes } from "@/lib/hooks/useSWR";
 
 interface Recipe {
   id: string;
@@ -32,48 +33,19 @@ const DAYS_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "sat
 
 export default function MealPlanDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
   
-  const [mealPlan, setMealPlan] = useState<MealPlan | null>(null);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
+  const { mealPlan, isLoading: mealPlanLoading, isError: mealPlanError, mutate } = useMealPlan(id);
+  const { recipes, isLoading: recipesLoading } = useRecipes();
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedRecipe, setSelectedRecipe] = useState<string>("");
 
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      const [mealPlanRes, recipesRes] = await Promise.all([
-        fetch(`/api/meal-plans/${id}`),
-        fetch("/api/recipes"),
-      ]);
+  const isLoading = mealPlanLoading || recipesLoading;
+  const error = mealPlanError ? "Failed to load meal plan" : null;
 
-      if (!mealPlanRes.ok || !recipesRes.ok) {
-        throw new Error("Failed to fetch data");
-      }
-
-      const mealPlanData = await mealPlanRes.json();
-      const recipesData = await recipesRes.json();
-
-      setMealPlan(mealPlanData);
-      setRecipes(recipesData);
-    } catch (err) {
-      setError("Failed to load meal plan");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddRecipe = async () => {
+  const handleAddRecipe = useCallback(async () => {
     if (!selectedDay || !selectedRecipe) {
-      setError("Please select a day and recipe");
       return;
     }
 
@@ -93,16 +65,15 @@ export default function MealPlanDetailPage() {
         throw new Error("Failed to add recipe");
       }
 
-      setSelectedDay(null);
-      setSelectedRecipe(null);
-      await fetchData();
+      setSelectedDay("");
+      setSelectedRecipe("");
+      mutate();
     } catch (err) {
-      setError("Failed to add recipe");
       console.error(err);
     }
-  };
+  }, [id, selectedDay, selectedRecipe, mutate]);
 
-  const handleRemoveRecipe = async (recipeId: string) => {
+  const handleRemoveRecipe = useCallback(async (recipeId: string) => {
     try {
       const response = await fetch(`/api/meal-plans/${id}`, {
         method: "PATCH",
@@ -117,12 +88,18 @@ export default function MealPlanDetailPage() {
         throw new Error("Failed to remove recipe");
       }
 
-      await fetchData();
+      mutate();
     } catch (err) {
-      setError("Failed to remove recipe");
       console.error(err);
     }
-  };
+  }, [id, mutate]);
+
+  const sortedDays = useMemo(() => {
+    if (!mealPlan) return [];
+    return [...mealPlan.days].sort(
+      (a: Day, b: Day) => DAYS_ORDER.indexOf(a.dayOfWeek) - DAYS_ORDER.indexOf(b.dayOfWeek)
+    );
+  }, [mealPlan]);
 
   if (isLoading) {
     return (
@@ -155,9 +132,7 @@ export default function MealPlanDetailPage() {
     );
   }
 
-  const sortedDays = mealPlan.days.sort(
-    (a, b) => DAYS_ORDER.indexOf(a.dayOfWeek) - DAYS_ORDER.indexOf(b.dayOfWeek)
-  );
+  const recipesList: Recipe[] = recipes || [];
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -205,7 +180,7 @@ export default function MealPlanDetailPage() {
                 className="block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
               >
                 <option value="">Choose a day...</option>
-                {sortedDays.map((day) => (
+                {sortedDays.map((day: Day) => (
                   <option key={day.id} value={day.dayOfWeek}>
                     {day.dayOfWeek.charAt(0).toUpperCase() + day.dayOfWeek.slice(1)}
                   </option>
@@ -223,7 +198,7 @@ export default function MealPlanDetailPage() {
                 className="block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
               >
                 <option value="">Choose a recipe...</option>
-                {recipes.map((recipe) => (
+                {recipesList.map((recipe: Recipe) => (
                   <option key={recipe.id} value={recipe.id}>
                     {recipe.name}
                   </option>
@@ -240,35 +215,43 @@ export default function MealPlanDetailPage() {
           </div>
         </div>
 
-        <div className="grid gap-6">
-          {sortedDays.map((day) => (
-            <div key={day.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6">
-              <h3 className="text-xl font-semibold mb-6 text-[var(--foreground)] capitalize">
-                📅 {day.dayOfWeek}
-              </h3>
-              {day.recipes.length === 0 ? (
-                <p className="text-[var(--foreground)] opacity-60">No recipes assigned</p>
-              ) : (
-                <ul className="space-y-3">
-                  {day.recipes.map((mealPlanRecipe) => (
-                    <li
-                      key={mealPlanRecipe.id}
-                      className="flex justify-between items-center p-4 bg-[var(--primary)]/5 rounded-lg border border-[var(--border)] hover:border-[var(--primary)] transition-all"
-                    >
-                      <span className="font-semibold text-[var(--foreground)]">{mealPlanRecipe.recipe.name}</span>
-                      <button
-                        onClick={() => handleRemoveRecipe(mealPlanRecipe.id)}
-                        className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-semibold transition-colors"
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+        <Suspense
+          fallback={(
+            <div className="text-center py-12">
+              <p className="text-[var(--foreground)] opacity-60">Loading meal plan days...</p>
             </div>
-          ))}
-        </div>
+          )}
+        >
+          <div className="grid gap-6">
+            {sortedDays.map((day: Day) => (
+              <div key={day.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-[var(--border)] p-6 cv-section">
+                <h3 className="text-xl font-semibold mb-6 text-[var(--foreground)] capitalize">
+                  📅 {day.dayOfWeek}
+                </h3>
+                {day.recipes.length === 0 ? (
+                  <p className="text-[var(--foreground)] opacity-60">No recipes assigned</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {day.recipes.map((mealPlanRecipe: MealPlanRecipe) => (
+                      <li
+                        key={mealPlanRecipe.id}
+                        className="flex justify-between items-center p-4 bg-[var(--primary)]/5 rounded-lg border border-[var(--border)] hover:border-[var(--primary)] transition-all cv-item"
+                      >
+                        <span className="font-semibold text-[var(--foreground)]">{mealPlanRecipe.recipe.name}</span>
+                        <button
+                          onClick={() => handleRemoveRecipe(mealPlanRecipe.id)}
+                          className="text-[var(--error)] hover:text-[var(--accent-dark)] text-sm font-semibold transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </Suspense>
       </main>
     </div>
   );

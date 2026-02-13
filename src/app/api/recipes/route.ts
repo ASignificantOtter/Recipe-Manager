@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -23,6 +24,15 @@ const createRecipeSchema = z.object({
   ),
 });
 
+// Cache user recipes for per-request deduplication
+const getUserRecipes = cache(async (userId: string) => {
+  return prisma.recipe.findMany({
+    where: { userId },
+    include: { ingredients: true },
+    orderBy: { createdAt: "desc" },
+  });
+});
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -31,11 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const recipes = await prisma.recipe.findMany({
-      where: { userId: session.user.id },
-      include: { ingredients: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const recipes = await getUserRecipes(session.user.id);
 
     return NextResponse.json(recipes);
   } catch (error) {
@@ -46,13 +52,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    // Parallelize auth and body parsing
+    const [session, body] = await Promise.all([
+      auth(),
+      request.json(),
+    ]);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
     const validatedData = createRecipeSchema.parse(body);
 
     const recipe = await prisma.recipe.create({

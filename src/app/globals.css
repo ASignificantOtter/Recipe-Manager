@@ -138,3 +138,18 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
+
+.cv-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 280px 220px;
+}
+
+.cv-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 480px 320px;
+}
+
+.cv-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 120px 80px;
+}

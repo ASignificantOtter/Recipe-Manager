@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { parseIngredient, normalizeParsedIngredient } from "@/lib/uploader/ingredientParser";
+import { loadParserUtils } from "@/lib/utils/lazyLoaders";
 
 interface Ingredient {
   name: string;
@@ -39,9 +39,12 @@ export default function UploadRecipePage() {
     dietaryTags: [] as string[],
   });
 
-  const dietaryOptions = ["vegetarian", "vegan", "gluten-free", "dairy-free", "nut-free"];
+  const dietaryOptions = useMemo(
+    () => ["vegetarian", "vegan", "gluten-free", "dairy-free", "nut-free"],
+    []
+  );
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -73,10 +76,25 @@ export default function UploadRecipePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  const importParsedIngredients = useCallback(async (lines: string[]) => {
+    const { parseIngredient } = await loadParserUtils();
+    const mapped = lines.map((line) => {
+      const parsed = parseIngredient(line);
+      return {
+        name: parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+        notes: parsed.notes || "",
+      } as Ingredient;
+    });
+    setOriginalIngredients(mapped.map((m) => ({ ...m })));
+    setIngredients(mapped);
+  }, []);
 
   // parse ingredient strings into structured fields
-  const applyExtracted = () => {
+  const applyExtracted = useCallback(() => {
     if (!extractedData) return;
     setFormData((prev) => ({
       ...prev,
@@ -90,23 +108,10 @@ export default function UploadRecipePage() {
     }
 
     setExtractedData(null);
-  };
+  }, [extractedData, importParsedIngredients]);
 
-  const importParsedIngredients = (lines: string[]) => {
-    const mapped = lines.map((line) => {
-      const parsed = parseIngredient(line);
-      return {
-        name: parsed.name,
-        quantity: parsed.quantity,
-        unit: parsed.unit,
-        notes: parsed.notes || "",
-      } as Ingredient;
-    });
-    setOriginalIngredients(mapped.map((m) => ({ ...m })));
-    setIngredients(mapped);
-  };
-
-  const normalizeIngredient = (index: number) => {
+  const normalizeIngredient = useCallback(async (index: number) => {
+    const { normalizeParsedIngredient } = await loadParserUtils();
     const current = ingredients[index];
     const parsed = normalizeParsedIngredient({
       name: current.name,
@@ -129,9 +134,10 @@ export default function UploadRecipePage() {
     }
 
     setIngredients(updated);
-  };
+  }, [ingredients]);
 
-  const normalizeAll = () => {
+  const normalizeAll = useCallback(async () => {
+    const { normalizeParsedIngredient } = await loadParserUtils();
     const updated = ingredients.map((ing) => {
       const parsed = normalizeParsedIngredient(ing as any);
       if (parsed.canonicalQuantity && parsed.canonicalUnit) {
@@ -142,29 +148,29 @@ export default function UploadRecipePage() {
     });
     setOriginalIngredients(originalIngredients ?? ingredients.map((i) => ({ ...i })));
     setIngredients(updated);
-  };
+  }, [ingredients, originalIngredients]);
 
-  const revertNormalization = () => {
+  const revertNormalization = useCallback(() => {
     if (originalIngredients) {
       setIngredients(originalIngredients);
       setOriginalIngredients(null);
       setPerIngredientCanonical({});
     }
-  };
+  }, [originalIngredients]);
 
-  const toggleCanonicalForIngredient = (index: number) => {
+  const toggleCanonicalForIngredient = useCallback((index: number) => {
     setPerIngredientCanonical((prev) => ({
       ...prev,
       [index]: !prev[index],
     }));
-  };
+  }, []);
 
-  const dismissExtracted = () => {
+  const dismissExtracted = useCallback(() => {
     setExtractedData(null);
     setParsingWarning(null);
-  };
+  }, []);
 
-  const handleFormChange = (
+  const handleFormChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
@@ -172,40 +178,42 @@ export default function UploadRecipePage() {
       ...prev,
       [name]: name === "prepTime" || name === "cookTime" || name === "servings" ? parseInt(value) || "" : value,
     }));
-  };
+  }, []);
 
-  const handleDietaryTagChange = (tag: string) => {
+  const handleDietaryTagChange = useCallback((tag: string) => {
     setFormData((prev) => ({
       ...prev,
       dietaryTags: prev.dietaryTags.includes(tag)
         ? prev.dietaryTags.filter((t) => t !== tag)
         : [...prev.dietaryTags, tag],
     }));
-  };
+  }, []);
 
-  const handleIngredientChange = (
+  const handleIngredientChange = useCallback((
     index: number,
     field: keyof Ingredient,
     value: string | number
   ) => {
-    const newIngredients = [...ingredients];
-    if (field === "quantity") {
-      newIngredients[index][field] = parseFloat(value as string) || 0;
-    } else {
-      newIngredients[index][field] = value as string;
-    }
-    setIngredients(newIngredients);
-  };
+    setIngredients((prev) => {
+      const newIngredients = [...prev];
+      if (field === "quantity") {
+        newIngredients[index][field] = parseFloat(value as string) || 0;
+      } else {
+        newIngredients[index][field] = value as string;
+      }
+      return newIngredients;
+    });
+  }, []);
 
-  const addIngredient = () => {
-    setIngredients([...ingredients, { name: "", quantity: 0, unit: "", notes: "" }]);
-  };
+  const addIngredient = useCallback(() => {
+    setIngredients((prev) => [...prev, { name: "", quantity: 0, unit: "", notes: "" }]);
+  }, []);
 
-  const removeIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index));
-  };
+  const removeIngredient = useCallback((index: number) => {
+    setIngredients((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
@@ -244,7 +252,7 @@ export default function UploadRecipePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [formData, ingredients, uploadedFile, router]);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">

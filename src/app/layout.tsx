@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navigation from "@/components/Navigation";
 import Providers from "@/components/Providers";
 
 const geistSans = Geist({
@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Recipe Hub",
   description: "A multi-user recipe management application with meal planning and shopping list generation",
 };
+
+const Navigation = dynamic(() => import("@/components/Navigation"), {
+  ssr: true,
+  loading: () => <div className="h-16 md:ml-64" />,
+});
 
 export default function RootLayout({
   children,
