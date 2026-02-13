@@ -15,94 +15,113 @@ function splitLines(text: string) {
     .filter((l) => l.length > 0);
 }
 
-function extractSection(text: string, header: string) {
-  const re = new RegExp(`${header}[:\s]*`, "i");
-  const idx = text.search(re);
-  if (idx === -1) return null;
-  // return rest after header
-  return text.slice(idx + text.match(re)![0].length).trim();
+// Normalize common OCR/typo variants for section headers
+function normalizeForSectionMatch(text: string): string {
+  return text
+    .replace(/\blngredients?\b/gi, "ingredients")
+    .replace(/\blnstructions?\b/gi, "instructions")
+    .replace(/\bdlrections?\b/gi, "directions");
 }
 
-export function simpleParseRecipe(text: string): RecipeData {
-  const src = normalize(text);
+// Find position of first match of a pattern; returns { index, match } or null
+function findFirstMatch(text: string, regex: RegExp): { index: number; match: string } | null {
+  const m = text.match(regex);
+  if (!m || m.index == null) return null;
+  return { index: m.index, match: m[0] };
+}
 
-  // Look for explicit sections
-  const ingredientsSectionMatch = src.match(/ingredients[:\n\r]/i);
-  const instructionsSectionMatch = src.match(/instructions[:\n\r]|directions[:\n\r]|method[:\n\r]/i);
+// Section headers: allow optional markdown #, word variants. Consume only same-line punctuation [ \t:]*
+const INGREDIENTS_HEADER =
+  /#*\s*\b(ingredients?|ingredient\s+list|what you('ll)?\s+need|you will need|lngredients?)\b[ \t:]*/i;
+const INSTRUCTIONS_HEADER =
+  /#*\s*\b(?!ingredients\b)(instructions?|directions?|method|steps?|preparation|how to make|procedure|lnstructions?)\b[ \t:]*/i;
+
+// When finding where a section ends, only match headers at line start (avoid "ingredients" in "1. Mix ingredients")
+const INGREDIENTS_HEADER_AT_LINE_START = /\n\s*#*\s*(ingredients?|ingredient\s+list|what you('ll)?\s+need|you will need|lngredients?)\b[ \t:]*/i;
+const INSTRUCTIONS_HEADER_AT_LINE_START = /\n\s*#*\s*(instructions?|directions?|method|steps?|preparation|how to make|procedure|lnstructions?)\b[ \t:]*/i;
+
+// Sub-headers we strip from the ingredients list (e.g. "Dry Ingredients:", "For the dough:")
+const INGREDIENT_SUBHEADER = /^\s*(for the\s+.+|(dry|wet|optional|main)\s+ingredients?|ingredients?\s+for)\s*:?\s*$/i;
+
+export function simpleParseRecipe(text: string): RecipeData {
+  const raw = normalize(text);
+  const src = normalizeForSectionMatch(raw);
+
+  const ingMatch = findFirstMatch(src, INGREDIENTS_HEADER);
+  const instMatch = findFirstMatch(src, INSTRUCTIONS_HEADER);
 
   let title = "";
   let ingredients: string[] = [];
   let instructions: string[] = [];
 
+  // Numbered step (e.g. "1. Preheat oven") is instruction, not ingredient
+  const isNumberedStep = (line: string) => /^\d+[.)]\s/.test(line);
   const isIngredientLike = (line: string) => {
     if (!line) return false;
-    if (/^[-\*\u2022]/.test(line)) return true;
-    if (/^\d+\/?\d*\s+/i.test(line)) return true;
-    if (/\b(cup|tablespoon|tbsp|teaspoon|tsp|grams|g|ml|ounce|oz|pound|lb)\b/i.test(line)) return true;
+    if (isNumberedStep(line)) return false;
+    if (/^[-\*\u2022]\s*/.test(line)) return true;
+    // "1 cup flour" or "2 tbsp" — quantity then optional fraction then space (no period after number)
+    if (/^\d+\s*\/?\s*\d*\s+/.test(line) && !/^\d+\.\s/.test(line)) return true;
+    if (/\b(cup|cups|tablespoon|tbsp|teaspoon|tsp|grams?|g\b|ml|ounce|oz|pound|lb)\b/i.test(line)) return true;
     return false;
   };
 
-  if (ingredientsSectionMatch || instructionsSectionMatch) {
-    // title = first line before any section header
-    const firstHeaderIdx = Math.min(
-      ingredientsSectionMatch ? ingredientsSectionMatch.index! : Infinity,
-      instructionsSectionMatch ? instructionsSectionMatch.index! : Infinity
-    );
-    const before = src.slice(0, firstHeaderIdx).trim();
-    title = splitLines(before)[0] || "";
+  const firstSectionIdx = Math.min(
+    ingMatch?.index ?? Infinity,
+    instMatch?.index ?? Infinity
+  );
+  const beforeSection = src.slice(0, firstSectionIdx).trim();
+  const firstLine = splitLines(beforeSection)[0] || "";
+  title = firstLine.replace(/^#+\s*/, "").trim();
 
-    // Extract ingredients block
-    if (ingredientsSectionMatch) {
-      const afterIngredients = extractSection(src, "ingredients") || "";
-      // Stop at next section header if present
-      const stopAt = afterIngredients.search(/\n\s*(instructions|directions|method)[:\s]/i);
-      const ingText = stopAt === -1 ? afterIngredients : afterIngredients.slice(0, stopAt);
-      ingredients = splitLines(ingText).map((l) => l.replace(/^[-\*\u2022]\s*/, "").trim()).filter(Boolean);
+  if (ingMatch !== null || instMatch !== null) {
+    // Ingredients: from end of first ingredients header to start of first instructions header (or end)
+    if (ingMatch !== null) {
+      const afterHeader = src.slice(ingMatch.index + ingMatch.match.length).trim();
+      const instStart = afterHeader.search(INSTRUCTIONS_HEADER_AT_LINE_START);
+      const ingBlock = instStart === -1 ? afterHeader : afterHeader.slice(0, instStart).trim();
+      const lines = splitLines(ingBlock)
+        .map((l) => l.replace(/^[-\*\u2022]\s*/, "").replace(/^\d+[.)]\s*/, "").trim())
+        .filter((l) => l.length > 0 && !INGREDIENT_SUBHEADER.test(l));
+      ingredients = lines;
     }
 
-    // Extract instructions block
-    if (instructionsSectionMatch) {
-      const afterInst = extractSection(src, instructionsSectionMatch[0].replace(/[:\s]*$/i, "")) || "";
-      const stopAt = afterInst.search(/\n\s*(ingredients)[:\s]/i);
-      const instText = stopAt === -1 ? afterInst : afterInst.slice(0, stopAt);
-      instructions = splitLines(instText).map((l) => l.replace(/^\d+\.|^-\s*/, "").trim());
+    // Instructions: from end of first instructions header to end (or next ingredients block at line start)
+    if (instMatch !== null) {
+      const afterHeader = src.slice(instMatch.index + instMatch.match.length).trim();
+      const nextIng = afterHeader.search(INGREDIENTS_HEADER_AT_LINE_START);
+      const instBlock = nextIng === -1 ? afterHeader : afterHeader.slice(0, nextIng).trim();
+      instructions = splitLines(instBlock).map((l) => l.replace(/^\d+[.)]\s*|^-\s*/, "").trim());
     }
-    // If there's an instructions header but no ingredients header, try to extract ingredients
-    if (instructionsSectionMatch && !ingredientsSectionMatch) {
-      const beforeLines = splitLines(before).slice(1);
+
+    // Instructions header but no ingredients header: treat lines before instructions as title + possible ingredients
+    if (instMatch !== null && ingMatch === null) {
+      const beforeLines = splitLines(beforeSection).slice(1);
       const foundIngredients = beforeLines.filter(isIngredientLike).map((l) => l.replace(/^[-\*\u2022]\s*/, "").trim());
-      if (foundIngredients.length > 0) {
-        ingredients = foundIngredients;
-      }
-      // any non-ingredient lines before header after title -> treat as instructions prefix
-      const foundInstructions = beforeLines.filter((l) => !isIngredientLike(l));
-      if (foundInstructions.length > 0) {
-        instructions = [...foundInstructions, ...instructions];
-      }
+      if (foundIngredients.length > 0) ingredients = foundIngredients;
+      const prefixInstructions = beforeLines.filter((l) => !isIngredientLike(l));
+      if (prefixInstructions.length > 0) instructions = [...prefixInstructions, ...instructions];
     }
   } else {
     // No explicit sections — heuristics
     const lines = splitLines(src);
-    title = lines[0] || "";
+    title = (lines[0] || "").replace(/^#+\s*/, "").trim();
 
     let inIngredients = false;
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       const like = isIngredientLike(line);
-      if (like && !inIngredients) {
-        inIngredients = true;
-      }
+      if (like && !inIngredients) inIngredients = true;
 
       if (inIngredients) {
         if (!like && ingredients.length > 0) {
-          // switch to instructions after ingredient block ends
           inIngredients = false;
-          instructions.push(line);
-        } else {
+          instructions.push(line.replace(/^\d+[.)]\s*|^-\s*/, "").trim());
+        } else if (like) {
           ingredients.push(line.replace(/^[-\*\u2022]\s*/, "").trim());
         }
       } else {
-        instructions.push(line);
+        instructions.push(line.replace(/^\d+[.)]\s*|^-\s*/, "").trim());
       }
     }
   }
@@ -110,7 +129,7 @@ export function simpleParseRecipe(text: string): RecipeData {
   return {
     name: title,
     ingredients,
-    instructions: instructions.join("\n"),
+    instructions: instructions.filter(Boolean).join("\n"),
   };
 }
 

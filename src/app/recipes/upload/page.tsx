@@ -17,6 +17,7 @@ export default function UploadRecipePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [parsingWarning, setParsingWarning] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<{
     name?: string;
     ingredients?: string[];
@@ -63,8 +64,7 @@ export default function UploadRecipePage() {
 
       const data = await response.json();
       setUploadedFile(data.filename);
-      
-      // Store extracted data for user confirmation
+      setParsingWarning(data.parsingWarning ?? null);
       if (data.extractedRecipeData) {
         setExtractedData(data.extractedRecipeData);
       }
@@ -159,7 +159,10 @@ export default function UploadRecipePage() {
     }));
   };
 
-  const dismissExtracted = () => setExtractedData(null);
+  const dismissExtracted = () => {
+    setExtractedData(null);
+    setParsingWarning(null);
+  };
 
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -284,6 +287,11 @@ export default function UploadRecipePage() {
               </p>
               {uploadedFile && (
                 <p className="mt-3 text-sm text-[var(--success)] font-semibold">✓ File uploaded: {uploadedFile}</p>
+              )}
+              {parsingWarning && (
+                <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 font-medium" role="status">
+                  {parsingWarning}
+                </p>
               )}
             </div>
 

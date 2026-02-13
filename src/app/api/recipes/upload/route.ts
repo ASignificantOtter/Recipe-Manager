@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, readFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join, extname } from "path";
+import { pathToFileURL } from "url";
 
 // Parsing libraries
 import mammoth from "mammoth"; // docx
@@ -17,36 +18,58 @@ const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
 ];
+const ALLOWED_EXTENSIONS = [".docx", ".doc", ".pdf", ".jpg", ".jpeg", ".png"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-async function parseDocx(buffer: Buffer) {
-  const result = await mammoth.extractRawText({ buffer });
-  return simpleParseRecipe(result.value);
+function isAllowedFile(fileName: string, fileType: string): boolean {
+  const ext = extname(fileName).toLowerCase();
+  return ALLOWED_TYPES.includes(fileType) || (ALLOWED_EXTENSIONS.includes(ext) && fileType !== "");
 }
 
-async function parsePdf(buffer: Buffer) {
+function isEmptyParsed(p: { name: string; ingredients: string[]; instructions: string }) {
+  return !p.name.trim() && p.ingredients.length === 0 && !p.instructions.trim();
+}
+
+async function parseDocx(buffer: Buffer): Promise<{ parsed: { name: string; ingredients: string[]; instructions: string }; rawText: string }> {
+  const result = await mammoth.extractRawText({ buffer });
+  const rawText = result.value || "";
+  const parsed = simpleParseRecipe(rawText);
+  return { parsed, rawText };
+}
+
+async function parsePdf(buffer: Buffer): Promise<{ parsed: { name: string; ingredients: string[]; instructions: string }; rawText: string }> {
   const { PDFParse } = await import("pdf-parse");
+  // Next.js/Turbopack cannot resolve pdf.worker.mjs from pdfjs-dist; set worker path explicitly
+  // (fixes terminal error: "Setting up fake worker failed: Cannot find module '.../pdf.worker.mjs'")
+  if (typeof PDFParse.setWorker === "function") {
+    const workerPath = join(process.cwd(), "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs");
+    PDFParse.setWorker(pathToFileURL(workerPath).href);
+  }
   const parser = new PDFParse({ data: buffer });
   try {
     const textResult = await parser.getText();
-    return simpleParseRecipe(textResult?.text ?? "");
+    const rawText = textResult?.text ?? "";
+    const parsed = simpleParseRecipe(rawText);
+    return { parsed, rawText };
   } finally {
     await parser.destroy();
   }
 }
 
-async function parseDoc(buffer: Buffer) {
+async function parseDoc(buffer: Buffer): Promise<{ parsed: { name: string; ingredients: string[]; instructions: string }; rawText: string }> {
   try {
-    const text = buffer.toString("utf8");
-    return simpleParseRecipe(text);
-  } catch (e) {
-    return { name: "", ingredients: [], instructions: "" };
+    const rawText = buffer.toString("utf8");
+    const parsed = simpleParseRecipe(rawText);
+    return { parsed, rawText };
+  } catch {
+    return { parsed: { name: "", ingredients: [], instructions: "" }, rawText: "" };
   }
 }
 
-async function parseImage(buffer: Buffer) {
-  const text = await recognizeImage(buffer, { lang: "eng", maxWidth: 1600 });
-  return simpleParseRecipe(text || "");
+async function parseImage(buffer: Buffer): Promise<{ parsed: { name: string; ingredients: string[]; instructions: string }; rawText: string }> {
+  const rawText = await recognizeImage(buffer, { lang: "eng", maxWidth: 1600 }) || "";
+  const parsed = simpleParseRecipe(rawText);
+  return { parsed, rawText };
 }
 
 export async function POST(request: NextRequest) {
@@ -71,7 +94,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!isAllowedFile(file.name, file.type)) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
@@ -86,36 +109,62 @@ export async function POST(request: NextRequest) {
 
     await writeFile(filepath, buffer);
 
-    // Parse based on type/extension
+    // Parse based on type/extension (use ext when MIME is generic e.g. application/octet-stream)
     const ext = extname(file.name).toLowerCase();
+    const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === ".docx";
+    const isPdf = file.type === "application/pdf" || ext === ".pdf";
+    const isDoc = file.type === "application/msword" || ext === ".doc";
+    const isImage = file.type.startsWith("image/") || [".jpg", ".jpeg", ".png"].includes(ext);
+
     let extractedRecipeData = { name: "", ingredients: [] as string[], instructions: "" };
+    let parsingWarning: string | null = null;
 
     try {
-      if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === ".docx") {
-        const parsed = await parseDocx(buffer);
-        extractedRecipeData = parsed;
-      } else if (file.type === "application/pdf" || ext === ".pdf") {
-        const parsed = await parsePdf(buffer);
-        extractedRecipeData = parsed;
-      } else if (file.type === "application/msword" || ext === ".doc") {
-        // Best-effort .doc parsing fallback
-        const parsed = await parseDoc(buffer);
-        extractedRecipeData = parsed;
-      } else if (file.type.startsWith("image/") || ext === ".jpg" || ext === ".jpeg" || ext === ".png") {
-        const parsed = await parseImage(buffer);
-        extractedRecipeData = parsed;
+      if (isDocx) {
+        const { parsed, rawText } = await parseDocx(buffer);
+        if (isEmptyParsed(parsed) && rawText.trim()) {
+          extractedRecipeData = { name: file.name.replace(/\.[^.]+$/, "") || "Recipe", ingredients: [], instructions: rawText.trim() };
+          parsingWarning = "Could not detect recipe sections; full text is in Instructions.";
+        } else {
+          extractedRecipeData = parsed;
+        }
+      } else if (isPdf) {
+        const { parsed, rawText } = await parsePdf(buffer);
+        if (isEmptyParsed(parsed) && rawText.trim()) {
+          extractedRecipeData = { name: file.name.replace(/\.[^.]+$/, "") || "Recipe", ingredients: [], instructions: rawText.trim() };
+          parsingWarning = "Could not detect recipe sections; full text is in Instructions.";
+        } else {
+          extractedRecipeData = parsed;
+        }
+      } else if (isDoc) {
+        const { parsed, rawText } = await parseDoc(buffer);
+        if (isEmptyParsed(parsed) && rawText.trim()) {
+          extractedRecipeData = { name: file.name.replace(/\.[^.]+$/, "") || "Recipe", ingredients: [], instructions: rawText.trim() };
+          parsingWarning = "Could not detect recipe sections; full text is in Instructions.";
+        } else {
+          extractedRecipeData = parsed;
+        }
+      } else if (isImage) {
+        const { parsed, rawText } = await parseImage(buffer);
+        if (isEmptyParsed(parsed) && rawText.trim()) {
+          extractedRecipeData = { name: file.name.replace(/\.[^.]+$/, "") || "Recipe", ingredients: [], instructions: rawText.trim() };
+          parsingWarning = "Could not detect recipe sections; full text is in Instructions.";
+        } else {
+          extractedRecipeData = parsed;
+        }
       }
     } catch (err) {
       console.error("Parsing error:", err);
+      parsingWarning = "Parsing failed; you can still add the recipe manually.";
     }
 
-    // Return file info and extracted data
     return NextResponse.json({
       filename,
       originalName: file.name,
       fileType: file.type,
       size: file.size,
       extractedRecipeData,
+      parsingWarning,
     });
   } catch (error) {
     console.error("Error uploading file:", error);
