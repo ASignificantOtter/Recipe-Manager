@@ -125,7 +125,7 @@ export default function RecipesPage() {
       // Revert on error
       mutate();
     }
-  }, [recipesList, mutate]);
+  }, [recipes, mutate]);
 
   const handleNavigate = useCallback((id: string) => {
     router.push(`/recipes/${id}`);

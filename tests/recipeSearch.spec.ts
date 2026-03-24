@@ -200,6 +200,14 @@ describe("buildRecipesQueryString", () => {
     expect(url).toContain("maxCookTime=30");
   });
 
+  it("returns base URL when maxPrepTime is NaN", () => {
+    expect(buildRecipesQueryString({ maxPrepTime: NaN })).toBe("/api/recipes");
+  });
+
+  it("returns base URL when maxCookTime is NaN", () => {
+    expect(buildRecipesQueryString({ maxCookTime: NaN })).toBe("/api/recipes");
+  });
+
   it("omits undefined optional fields", () => {
     const url = buildRecipesQueryString({ search: "cake" });
     expect(url).not.toContain("tags=");

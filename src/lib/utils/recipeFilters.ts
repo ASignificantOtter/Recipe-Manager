@@ -48,11 +48,11 @@ export function buildRecipesQueryString(filters: RecipeFilters): string {
     if (tag) params.append("tags", tag);
   });
 
-  if (filters.maxPrepTime !== undefined) {
+  if (filters.maxPrepTime !== undefined && !isNaN(filters.maxPrepTime)) {
     params.set("maxPrepTime", String(filters.maxPrepTime));
   }
 
-  if (filters.maxCookTime !== undefined) {
+  if (filters.maxCookTime !== undefined && !isNaN(filters.maxCookTime)) {
     params.set("maxCookTime", String(filters.maxCookTime));
   }
 
