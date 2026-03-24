@@ -1,8 +1,8 @@
-import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { buildRecipeWhereClause, type RecipeFilters } from "@/lib/utils/recipeFilters";
 
 const createRecipeSchema = z.object({
   name: z.string().min(1),
@@ -24,15 +24,6 @@ const createRecipeSchema = z.object({
   ),
 });
 
-// Cache user recipes for per-request deduplication
-const getUserRecipes = cache(async (userId: string) => {
-  return prisma.recipe.findMany({
-    where: { userId },
-    include: { ingredients: true },
-    orderBy: { createdAt: "desc" },
-  });
-});
-
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -41,7 +32,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const recipes = await getUserRecipes(session.user.id);
+    const { searchParams } = new URL(request.url);
+    const filters: RecipeFilters = {
+      search: searchParams.get("search") ?? undefined,
+      tags: searchParams.getAll("tags").filter(Boolean),
+      maxPrepTime: searchParams.get("maxPrepTime")
+        ? Number(searchParams.get("maxPrepTime"))
+        : undefined,
+      maxCookTime: searchParams.get("maxCookTime")
+        ? Number(searchParams.get("maxCookTime"))
+        : undefined,
+    };
+
+    const where = buildRecipeWhereClause(session.user.id, filters);
+
+    const recipes = await prisma.recipe.findMany({
+      where,
+      include: { ingredients: true },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json(recipes);
   } catch (error) {

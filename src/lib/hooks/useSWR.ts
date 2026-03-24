@@ -1,5 +1,9 @@
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
+import {
+  buildRecipesQueryString,
+  type RecipeFilters,
+} from "@/lib/utils/recipeFilters";
 
 // Generic fetcher function
 const fetcher = async (url: string) => {
@@ -18,9 +22,10 @@ const fetcher = async (url: string) => {
 };
 
 // Recipe hooks
-export function useRecipes() {
+export function useRecipes(filters?: RecipeFilters) {
   const router = useRouter();
-  const { data, error, isLoading, mutate } = useSWR("/api/recipes", fetcher, {
+  const url = buildRecipesQueryString(filters ?? {});
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
     revalidateOnFocus: false,
     onError: (err) => {
       if (err.message === "Unauthorized") {
