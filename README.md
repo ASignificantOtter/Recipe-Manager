@@ -2,6 +2,12 @@
 
 A modern, multi-user recipe management application built with Next.js, React, TypeScript, and PostgreSQL. Manage your recipes, create meal plans, and generate shopping lists effortlessly.
 
+## What's New
+
+- Added recipe search and filtering on the Recipes page
+- New filters include name search, dietary tags, max prep time, and max cook time
+- Added a one-click "Clear all filters" action
+
 ## Features
 
 - **User Authentication**: Secure email/password authentication with NextAuth.js
@@ -10,6 +16,11 @@ A modern, multi-user recipe management application built with Next.js, React, Ty
   - Ingredient quantities and units with canonical conversions
   - Dietary tags (vegetarian, vegan, gluten-free, etc.)
   - Notes and preparation tips
+- **Recipe Search & Filters**: Quickly find recipes with client + API-backed filtering
+  - Search by recipe name (case-insensitive)
+  - Filter by one or more dietary tags
+  - Filter by maximum prep time and/or cook time
+  - Clear all active filters in one click
 - **Smart File Upload & Parsing**: Upload recipes from multiple file formats with intelligent extraction
   - Supported formats: .docx, .pdf, .doc, .jpg, .png (up to 10MB)
   - Automatic recipe structure detection (title, ingredients, instructions)
@@ -145,6 +156,14 @@ The server will start on `http://localhost:3000` (or fall back to `http://localh
     - Use "Revert normalization" to restore original values
 6. Fill in recipe details and save
 7. View, edit, or delete recipes as needed
+
+### Searching & Filtering Recipes
+
+1. Go to "Your Recipes"
+2. Use the **Search by name** field to find recipes by title
+3. Toggle one or more **Dietary tags** to narrow results
+4. Optionally set **Max prep time** and **Max cook time** filters
+5. Use **Clear all filters** to reset back to the full recipe list
 
 ### Creating a Meal Plan
 
@@ -354,13 +373,14 @@ Completed Features:
 - ✅ Ingredient parsing and normalization with unit standardization
 - ✅ Density-based volume-to-mass conversions
 - ✅ Per-ingredient canonical/original toggle UI
+- ✅ Advanced recipe search and filtering (by name, dietary tags, and time)
 
 Planned Features:
 
 - [ ] Expand ingredient density table (onion, carrot, baking powder, yeast, etc.)
 - [ ] Recipe scaling (dynamically adjust servings and ingredient quantities)
 - [ ] Nutritional information integration (calories, macros, micros per serving)
-- [ ] Advanced recipe search and filtering (by ingredients, dietary tags, time)
+- [ ] Extended search and filtering (by ingredients, pantry match, advanced facets)
 - [ ] Shared recipes and collaborative meal planning
 - [ ] Recipe ratings, reviews, and community library
 - [ ] Customizable dietary preference profiles
