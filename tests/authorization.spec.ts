@@ -30,6 +30,12 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       delete: vi.fn(),
     },
+    sharedRecipe: {
+      findUnique: vi.fn(),
+    },
+    mealPlanCollaborator: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 

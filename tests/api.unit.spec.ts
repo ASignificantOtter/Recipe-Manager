@@ -37,6 +37,13 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       delete: vi.fn(),
     },
+    sharedRecipe: {
+      findUnique: vi.fn(),
+    },
+    mealPlanCollaborator: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -432,14 +439,15 @@ describe("API Integration - Meal Plans", () => {
       ];
 
       (prisma.mealPlan.findMany as any).mockResolvedValue(mockMealPlans);
+      (prisma.mealPlanCollaborator.findMany as any).mockResolvedValue([]);
 
       const req = new NextRequest("http://localhost/api/meal-plans");
       const res = await getMealPlans(req);
       const body = await res.json();
 
       expect(res.status).toBe(200);
-      // JSON serialization converts Date to ISO strings
-      expect(body).toMatchObject([
+      // Response now includes own plans and shared (collaborated) plans
+      expect(body.own).toMatchObject([
         {
           id: "plan-1",
           userId: "test-user-1",
@@ -449,6 +457,7 @@ describe("API Integration - Meal Plans", () => {
           days: [],
         },
       ]);
+      expect(body.shared).toEqual([]);
     });
   });
 

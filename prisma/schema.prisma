@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
-  name          String?
-  password      String // hashed password for credentials provider
-  recipes       Recipe[]
-  mealPlans     MealPlan[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                    String                  @id @default(cuid())
+  email                 String                  @unique
+  name                  String?
+  password              String // hashed password for credentials provider
+  recipes               Recipe[]
+  mealPlans             MealPlan[]
+  sharedRecipesReceived SharedRecipe[]          @relation("RecipeSharedWith")
+  mealPlanCollaborations MealPlanCollaborator[] @relation("MealPlanCollaborator")
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
 }
 
 model Recipe {
@@ -29,14 +31,17 @@ model Recipe {
   servings           Int?
   notes              String?
   dietaryTags        String[] // e.g., ["vegetarian", "gluten-free"]
+  isPublic           Boolean               @default(false)
   ingredients        RecipeIngredient[]
   mealPlanRecipes    MealPlanRecipe[]
+  sharedWith         SharedRecipe[]
   uploadedFileName   String? // original file name if uploaded from file
   uploadedFileType   String? // file type: docx, pdf, jpg
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
   @@index([userId])
+  @@index([isPublic])
 }
 
 model RecipeIngredient {
@@ -56,16 +61,17 @@ model RecipeIngredient {
 }
 
 model MealPlan {
-  id             String            @id @default(cuid())
+  id             String                  @id @default(cuid())
   userId         String
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   description    String?
   startDate      DateTime
   endDate        DateTime
   days           MealPlanDay[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  collaborators  MealPlanCollaborator[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   @@index([userId])
 }
@@ -96,4 +102,33 @@ model MealPlanRecipe {
 
   @@index([mealPlanDayId])
   @@index([recipeId])
+}
+
+// Shared recipe: owner shares a specific recipe with another user
+model SharedRecipe {
+  id         String   @id @default(cuid())
+  recipeId   String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  sharedWith String   // userId of recipient
+  user       User     @relation("RecipeSharedWith", fields: [sharedWith], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([recipeId, sharedWith])
+  @@index([sharedWith])
+  @@index([recipeId])
+}
+
+// Meal plan collaborator: allows another user to view or edit a meal plan
+model MealPlanCollaborator {
+  id         String   @id @default(cuid())
+  mealPlanId String
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation("MealPlanCollaborator", fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("viewer") // "viewer" or "editor"
+  createdAt  DateTime @default(now())
+
+  @@unique([mealPlanId, userId])
+  @@index([userId])
+  @@index([mealPlanId])
 }

@@ -54,9 +54,18 @@ export async function GET(
       return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
     }
 
-    // Verify ownership
+    // Allow access if: owner, recipe is public, or recipe is shared with this user
     if (recipe.userId !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const isPublic = (recipe as { isPublic?: boolean }).isPublic === true;
+      const shareRecord = isPublic
+        ? null
+        : await prisma.sharedRecipe.findUnique({
+            where: { recipeId_sharedWith: { recipeId: id, sharedWith: session.user.id } },
+          });
+
+      if (!isPublic && !shareRecord) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     return NextResponse.json(recipe);

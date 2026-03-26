@@ -26,6 +26,12 @@ export default function Navigation() {
     if (href === "/shopping-list") {
       return pathname.includes("/shopping-list");
     }
+    if (href === "/recipes/shared") {
+      return pathname === "/recipes/shared";
+    }
+    if (href === "/recipes") {
+      return pathname.startsWith("/recipes") && !pathname.startsWith("/recipes/shared");
+    }
     return pathname.startsWith(href);
   }, [pathname]);
 
@@ -33,6 +39,7 @@ export default function Navigation() {
     return [
       { href: "/recipes", label: "🍽 Recipes", icon: "📖" },
       ...(session?.user ? [{ href: "/recipes/upload", label: "⬆️ Upload", icon: "📤" }] : []),
+      { href: "/recipes/shared", label: "🌐 Shared Recipes", icon: "🔗" },
       { href: "/meal-plans", label: "📅 Meal Plans", icon: "🗓" },
       { href: "/shopping-list", label: "🛒 Shopping Lists", icon: "📋" },
       { href: "/auth/signin", label: "👤 Profile", icon: "⚙" },
