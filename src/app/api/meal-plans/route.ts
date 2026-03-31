@@ -28,6 +28,27 @@ const getUserMealPlans = cache(async (userId: string) => {
   });
 });
 
+// Fetch meal plans shared with this user as collaborator
+const getCollaboratedMealPlans = cache(async (userId: string) => {
+  const collaborations = await prisma.mealPlanCollaborator.findMany({
+    where: { userId },
+    include: {
+      mealPlan: {
+        include: {
+          days: {
+            include: {
+              recipes: {
+                include: { recipe: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  return collaborations.map((c) => ({ ...c.mealPlan, collaboratorRole: c.role }));
+});
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -36,9 +57,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const mealPlans = await getUserMealPlans(session.user.id);
+    const [ownPlans, collaboratedPlans] = await Promise.all([
+      getUserMealPlans(session.user.id),
+      getCollaboratedMealPlans(session.user.id),
+    ]);
 
-    return NextResponse.json(mealPlans);
+    return NextResponse.json({ own: ownPlans, shared: collaboratedPlans });
   } catch (error) {
     console.error("Error fetching meal plans:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

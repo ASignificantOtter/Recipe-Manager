@@ -53,8 +53,14 @@ export async function GET(
       return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
     }
 
+    // Allow access if user is owner or a collaborator
     if (mealPlan.userId !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const collaborator = await prisma.mealPlanCollaborator.findUnique({
+        where: { mealPlanId_userId: { mealPlanId: id, userId: session.user.id } },
+      });
+      if (!collaborator) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     return NextResponse.json(mealPlan);
@@ -157,8 +163,18 @@ export async function PATCH(
     }
 
     const mealPlan = await prisma.mealPlan.findUnique({ where: { id } });
-    if (!mealPlan || mealPlan.userId !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!mealPlan) {
+      return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
+    }
+
+    // Allow owner or collaborators with editor role
+    if (mealPlan.userId !== session.user.id) {
+      const collaborator = await prisma.mealPlanCollaborator.findUnique({
+        where: { mealPlanId_userId: { mealPlanId: id, userId: session.user.id } },
+      });
+      if (!collaborator || collaborator.role !== "editor") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     const { action, ...data } = body;

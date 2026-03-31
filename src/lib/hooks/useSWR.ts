@@ -65,6 +65,48 @@ export function useRecipe(id: string) {
   };
 }
 
+export function useSharedRecipes() {
+  const router = useRouter();
+  const { data, error, isLoading, mutate } = useSWR("/api/recipes/shared", fetcher, {
+    revalidateOnFocus: false,
+    onError: (err) => {
+      if (err.message === "Unauthorized") {
+        router.push("/auth/signin");
+      }
+    },
+  });
+
+  return {
+    sharedRecipes: data as Array<Record<string, unknown>> | undefined,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}
+
+export function useRecipeSharing(id: string) {
+  const router = useRouter();
+  const { data, error, isLoading, mutate } = useSWR(
+    id ? `/api/recipes/${id}/share` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      onError: (err) => {
+        if (err.message === "Unauthorized") {
+          router.push("/auth/signin");
+        }
+      },
+    }
+  );
+
+  return {
+    sharing: data as { isPublic: boolean; sharedWith: Array<{ id: string; email: string; name?: string }> } | undefined,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}
+
 // Meal plan hooks
 export function useMealPlans() {
   const router = useRouter();
@@ -78,7 +120,8 @@ export function useMealPlans() {
   });
 
   return {
-    mealPlans: data,
+    mealPlans: (data as { own?: unknown[]; shared?: unknown[] } | undefined)?.own,
+    sharedMealPlans: (data as { own?: unknown[]; shared?: unknown[] } | undefined)?.shared,
     isLoading,
     isError: error,
     mutate,
@@ -102,6 +145,33 @@ export function useMealPlan(id: string) {
 
   return {
     mealPlan: data,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}
+
+export function useMealPlanCollaborators(id: string) {
+  const router = useRouter();
+  const { data, error, isLoading, mutate } = useSWR(
+    id ? `/api/meal-plans/${id}/collaborators` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      onError: (err) => {
+        if (err.message === "Unauthorized") {
+          router.push("/auth/signin");
+        }
+      },
+    }
+  );
+
+  return {
+    collaborators: data as Array<{
+      id: string;
+      role: string;
+      user: { id: string; email: string; name?: string };
+    }> | undefined,
     isLoading,
     isError: error,
     mutate,

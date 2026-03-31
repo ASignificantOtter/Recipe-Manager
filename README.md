@@ -7,6 +7,13 @@ A modern, multi-user recipe management application built with Next.js, React, Ty
 - Added recipe search and filtering on the Recipes page
 - New filters include name search, dietary tags, max prep time, and max cook time
 - Added a one-click "Clear all filters" action
+- **Shared recipes and collaborative meal planning**
+  - Mark any recipe as **public** to make it discoverable by all RecipeHub users
+  - Share individual recipes directly with specific users by email
+  - Browse all public and personally-shared recipes at `/recipes/shared`
+  - Invite collaborators to any meal plan by email (viewer or editor role)
+  - Collaborators can view – or, if given editor access, modify – shared meal plans
+  - Shared meal plans appear in a dedicated "Shared with Me" section on the Meal Plans page
 
 ## Features
 
@@ -21,6 +28,13 @@ A modern, multi-user recipe management application built with Next.js, React, Ty
   - Filter by one or more dietary tags
   - Filter by maximum prep time and/or cook time
   - Clear all active filters in one click
+- **Shared Recipes & Collaboration**
+  - Make any recipe public so all RecipeHub users can discover it
+  - Share recipes privately with specific users by email address
+  - Browse public and personally-shared recipes on the Shared Recipes page
+  - Invite collaborators to meal plans (viewer or editor roles)
+  - Editor collaborators can add/remove recipes in shared meal plans
+  - Shared meal plans shown in a dedicated "Shared with Me" section
 - **Smart File Upload & Parsing**: Upload recipes from multiple file formats with intelligent extraction
   - Supported formats: .docx, .pdf, .doc, .jpg, .png (up to 10MB)
   - Automatic recipe structure detection (title, ingredients, instructions)
@@ -190,29 +204,33 @@ src/
 │   │   ├── recipes/                           # Recipe API routes
 │   │   │   ├── route.ts                      # GET/POST recipes
 │   │   │   ├── [id]/route.ts                 # GET/PUT/DELETE specific recipe
+│   │   │   ├── [id]/share/route.ts           # GET/POST/DELETE recipe sharing
+│   │   │   ├── shared/route.ts               # GET public + shared-with-me recipes
 │   │   │   ├── import-url/route.ts            # URL import & parsing endpoint
-│   │   │   ├── upload/route.ts               # File upload & parsing endpoint
-│   │   │   └── upload/route.ts               # Handles .docx, .pdf, .doc, .jpg, .png
+│   │   │   └── upload/route.ts               # File upload & parsing endpoint
 │   │   └── meal-plans/                        # Meal plan API routes
-│   │       ├── route.ts                      # GET/POST meal plans
+│   │       ├── route.ts                      # GET/POST meal plans (own + collaborated)
 │   │       └── [id]/                         # Meal plan routes
 │   │           ├── route.ts                  # GET/PUT/DELETE/PATCH meal plan
-│   │           └── shopping-list/route.ts    # Generate shopping list
+│   │           ├── shopping-list/route.ts    # Generate shopping list
+│   │           └── collaborators/            # Collaborator management
+│   │               ├── route.ts              # GET/POST collaborators
+│   │               └── [userId]/route.ts     # DELETE specific collaborator
 │   ├── auth/
 │   │   ├── signin/page.tsx                   # Sign-in page
 │   │   └── signup/page.tsx                   # Sign-up page
 │   ├── recipes/
 │   │   ├── page.tsx                          # List recipes
 │   │   ├── new/page.tsx                      # Create recipe form
-│   │   ├── [id]/page.tsx                     # View recipe details
+│   │   ├── shared/page.tsx                   # Browse shared/public recipes
+│   │   ├── [id]/page.tsx                     # View recipe details (with share panel)
 │   │   ├── [id]/edit/page.tsx                # Edit recipe form
-│   │   ├── upload/page.tsx                   # File upload & preview UI
-│   │   └── upload/page.tsx                   # Extract and normalize ingredients
+│   │   └── upload/page.tsx                   # File upload & preview UI
 │   ├── meal-plans/
-│   │   ├── page.tsx                          # List meal plans
+│   │   ├── page.tsx                          # List meal plans + shared with me
 │   │   ├── new/page.tsx                      # Create meal plan form
 │   │   └── [id]/
-│   │       ├── page.tsx                      # Manage meal plan
+│   │       ├── page.tsx                      # Manage meal plan (with collaborators panel)
 │   │       └── shopping-list/page.tsx        # View shopping list
 │   ├── layout.tsx                            # Root layout
 │   ├── globals.css                           # Global styles
@@ -266,6 +284,7 @@ tests/
 - `servings`: Number of servings
 - `notes`: Additional notes
 - `dietaryTags`: Array of dietary tags (JSON)
+- `isPublic`: Whether recipe is publicly visible to all users (default: false)
 - `ingredients`: Array of ingredient objects
 - Relationships: `RecipeIngredient`, `MealPlanRecipe`
 
@@ -305,11 +324,25 @@ tests/
 - `serveCount`: Number of servings to prepare
 - `notes`: Optional notes
 
-## Development
+### SharedRecipe
+
+- `id`: Unique identifier
+- `recipeId`: Reference to the recipe being shared
+- `sharedWith`: User ID of the recipient
+- Unique constraint on `(recipeId, sharedWith)` to prevent duplicate shares
+
+### MealPlanCollaborator
+
+- `id`: Unique identifier
+- `mealPlanId`: Reference to the shared meal plan
+- `userId`: User ID of the collaborator
+- `role`: Either `viewer` (read-only) or `editor` (can add/remove recipes)
+- Unique constraint on `(mealPlanId, userId)`
+
 
 ### Run Tests
 
-Comprehensive unit and integration tests with **113 tests** across **10 test files**:
+Comprehensive unit and integration tests with **146 tests** across **12 test files**:
 
 ```bash
 npm test                    # Run all tests in watch mode
@@ -323,6 +356,8 @@ npm test -- --run          # Run tests once (CI mode)
 | Recipe Management | 19 | CRUD operations, authorization, validation |
 | Meal Plans | 20 | Creation, assignment, deletion, cascading |
 | Shopping Lists | 13 | Aggregation, serving counts, sorting |
+| Recipe Sharing | 16 | Public/private visibility, user-to-user sharing, access control |
+| Meal Plan Collaboration | 17 | Collaborator roles (viewer/editor), add/remove, access control |
 | Ingredient Parsing | 5 | Quantities, units, fractions, notes |
 | Ingredient Normalization | 20 | Unit conversion, density-based conversions |
 | Recipe Parsing | 3 | Text extraction, heuristics |
@@ -339,6 +374,8 @@ npm test -- --run          # Run tests once (CI mode)
 - ✅ Authorization and ownership verification
 - ✅ Error handling and edge cases
 - ✅ Aggregate operations and cascading deletes
+- ✅ Recipe sharing (public visibility, user-specific sharing, deduplication)
+- ✅ Meal plan collaboration (roles, permissions, add/remove collaborators)
 
 ### View Database
 
@@ -374,6 +411,7 @@ Completed Features:
 - ✅ Density-based volume-to-mass conversions
 - ✅ Per-ingredient canonical/original toggle UI
 - ✅ Advanced recipe search and filtering (by name, dietary tags, and time)
+- ✅ Shared recipes and collaborative meal planning
 
 Planned Features:
 
@@ -381,7 +419,6 @@ Planned Features:
 - [ ] Recipe scaling (dynamically adjust servings and ingredient quantities)
 - [ ] Nutritional information integration (calories, macros, micros per serving)
 - [ ] Extended search and filtering (by ingredients, pantry match, advanced facets)
-- [ ] Shared recipes and collaborative meal planning
 - [ ] Recipe ratings, reviews, and community library
 - [ ] Customizable dietary preference profiles
 - [ ] Shopping list export formats (PDF, CSV, email)
