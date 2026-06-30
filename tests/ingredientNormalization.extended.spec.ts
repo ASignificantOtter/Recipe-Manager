@@ -105,6 +105,27 @@ describe("normalizeParsedIngredient", () => {
       expect(norm.canonicalUnit).toBe("ml");
       expect(norm.canonicalQuantity).toBe(240);
     });
+
+    it("converts onion aliases to grams", () => {
+      const p = parseIngredient("1 cup yellow onion");
+      const norm = normalizeParsedIngredient(p as any);
+      expect(norm.canonicalUnit).toBe("g");
+      expect(norm.canonicalQuantity).toBeCloseTo(225.6, 1);
+    });
+
+    it("converts baking powder to grams", () => {
+      const p = parseIngredient("1 tbsp baking powder");
+      const norm = normalizeParsedIngredient(p as any);
+      expect(norm.canonicalUnit).toBe("g");
+      expect(norm.canonicalQuantity).toBeCloseTo(13.5, 1);
+    });
+
+    it("converts active dry yeast alias to grams", () => {
+      const p = parseIngredient("2 tsp active dry yeast");
+      const norm = normalizeParsedIngredient(p as any);
+      expect(norm.canonicalUnit).toBe("g");
+      expect(norm.canonicalQuantity).toBeCloseTo(8, 1);
+    });
   });
 
   describe("Edge Cases", () => {

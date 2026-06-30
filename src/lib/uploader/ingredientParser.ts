@@ -1,3 +1,5 @@
+import { getIngredientDensity } from "@/lib/uploader/ingredientDensity";
+
 type ParsedIngredient = {
   name: string;
   quantity: number;
@@ -168,27 +170,12 @@ export function normalizeParsedIngredient(parsed: ParsedIngredient): ParsedIngre
     res.canonicalUnit = conv.to;
   }
 
-  // If we have a volume in ml and we know a density for the ingredient, convert to grams
-  const DENSITIES: Record<string, number> = {
-    sugar: 0.85, // g/ml (granulated)
-    flour: 0.53, // g/ml (all-purpose)
-    butter: 0.911, // g/ml
-    milk: 1.03, // g/ml
-    water: 1.0,
-    tomatoes: 0.95,
-    "olive oil": 0.91,
-  };
-
   if (res.canonicalUnit === "ml" && res.canonicalQuantity && res.canonicalQuantity > 0) {
-    const nameLower = (parsed.name || "").toLowerCase();
-    for (const key of Object.keys(DENSITIES)) {
-      if (nameLower.includes(key)) {
-        const density = DENSITIES[key];
-        // convert ml -> g using density (g/ml)
-        res.canonicalQuantity = Math.round(res.canonicalQuantity * density * 100) / 100;
-        res.canonicalUnit = "g";
-        break;
-      }
+    const density = getIngredientDensity(parsed.name || "");
+    if (density) {
+      // convert ml -> g using density (g/ml)
+      res.canonicalQuantity = Math.round(res.canonicalQuantity * density * 100) / 100;
+      res.canonicalUnit = "g";
     }
   }
 
