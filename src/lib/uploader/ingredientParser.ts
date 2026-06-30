@@ -106,8 +106,8 @@ export function parseIngredient(line: string): ParsedIngredient {
   const tokens = original.split(/\s+/);
 
   // try first 2 tokens for quantity (support "1 1/2")
-  let qtyToken = tokens[0] || "";
-  let second = tokens[1] || "";
+  const qtyToken = tokens[0] || "";
+  const second = tokens[1] || "";
   let parsedQty = parseFraction(qtyToken);
   // handle mixed fraction like "1 1/2"
   if (second && /^\d+\/(\d+)$/.test(second)) {
@@ -171,7 +171,9 @@ export function normalizeParsedIngredient(parsed: ParsedIngredient): ParsedIngre
   }
 
   if (res.canonicalUnit === "ml" && res.canonicalQuantity && res.canonicalQuantity > 0) {
-    const density = getIngredientDensity(parsed.name || "");
+    const ingredientName = (parsed.name || "").trim();
+    if (!ingredientName) return res;
+    const density = getIngredientDensity(ingredientName);
     if (density) {
       // convert ml -> g using density (g/ml)
       res.canonicalQuantity = Math.round(res.canonicalQuantity * density * 100) / 100;
