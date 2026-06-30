@@ -13,4 +13,3 @@ export function normalizeIngredientName(value: string) {
     .replace(/\s+/g, " ")
     .trim();
 }
-

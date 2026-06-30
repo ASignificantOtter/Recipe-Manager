@@ -68,7 +68,7 @@ export default function EditRecipePage() {
           notes: data.notes || "",
           dietaryTags: data.dietaryTags || [],
         });
-        setTargetServings(data.servings || 1);
+        setTargetServings(sanitizeServingCount(data.servings));
         setIngredients(
           data.ingredients.map((ing: ApiIngredient) => ({
             id: ing.id,
