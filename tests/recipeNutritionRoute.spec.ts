@@ -87,4 +87,3 @@ describe("GET /api/recipes/[id]/nutrition", () => {
     expect(body.error).toBe("Unauthorized");
   });
 });
-

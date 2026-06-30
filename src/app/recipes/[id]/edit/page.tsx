@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +14,14 @@ interface Ingredient {
   unit: string;
   notes: string;
 }
+
+type ApiIngredient = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  notes?: string | null;
+};
 
 export default function EditRecipePage() {
   const params = useParams();
@@ -41,44 +49,44 @@ export default function EditRecipePage() {
   const dietaryOptions = ["vegetarian", "vegan", "gluten-free", "dairy-free", "nut-free"];
 
   useEffect(() => {
-    fetchRecipe();
-  }, [fetchRecipe]);
+    const fetchRecipe = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/recipes/${id}`);
 
-  const fetchRecipe = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/recipes/${id}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch recipe");
+        }
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch recipe");
+        const data = await response.json();
+        setFormData({
+          name: data.name,
+          instructions: data.instructions,
+          prepTime: data.prepTime?.toString() || "",
+          cookTime: data.cookTime?.toString() || "",
+          servings: data.servings?.toString() || "",
+          notes: data.notes || "",
+          dietaryTags: data.dietaryTags || [],
+        });
+        setTargetServings(data.servings || 1);
+        setIngredients(
+          data.ingredients.map((ing: ApiIngredient) => ({
+            id: ing.id,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            notes: ing.notes || "",
+          }))
+        );
+      } catch (err) {
+        setError("Failed to load recipe");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      const data = await response.json();
-      setFormData({
-        name: data.name,
-        instructions: data.instructions,
-        prepTime: data.prepTime?.toString() || "",
-        cookTime: data.cookTime?.toString() || "",
-        servings: data.servings?.toString() || "",
-        notes: data.notes || "",
-        dietaryTags: data.dietaryTags || [],
-      });
-      setTargetServings(data.servings || 1);
-      setIngredients(
-        data.ingredients.map((ing: { id: string; name: string; quantity: number; unit: string; notes?: string | null }) => ({
-          id: ing.id,
-          name: ing.name,
-          quantity: ing.quantity,
-          unit: ing.unit,
-          notes: ing.notes || "",
-        }))
-      );
-    } catch (err) {
-      setError("Failed to load recipe");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+    fetchRecipe();
   }, [id]);
 
   const handleFormChange = (

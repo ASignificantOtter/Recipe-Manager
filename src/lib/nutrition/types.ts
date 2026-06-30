@@ -26,4 +26,3 @@ export type RecipeNutritionSummary = {
   unmatchedIngredients: string[];
   perIngredient: IngredientNutritionBreakdown[];
 };
-

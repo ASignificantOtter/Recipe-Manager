@@ -98,4 +98,3 @@ export function getNutritionProfileByIngredient(name: string): NutritionProfile 
   }
   return null;
 }
-

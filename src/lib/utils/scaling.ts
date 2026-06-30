@@ -23,4 +23,3 @@ export function scaleQuantity(
   const multiplier = getScalingMultiplier(baseServings, targetServings);
   return roundQuantity(quantity * multiplier);
 }
-

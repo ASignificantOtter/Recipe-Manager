@@ -199,4 +199,3 @@ export function scaleNutritionForServings(
     targetServings: safeTarget,
   };
 }
-

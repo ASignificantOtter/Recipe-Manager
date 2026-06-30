@@ -50,4 +50,3 @@ describe("nutrition calculation", () => {
     expect(scaled.perServing.calories).toBe(summary.perServing.calories);
   });
 });
-

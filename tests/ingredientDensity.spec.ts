@@ -27,4 +27,3 @@ describe("ingredient density lookup", () => {
     expect(getSupportedDensityIngredients()).toContain("baking powder");
   });
 });
-

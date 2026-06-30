@@ -28,4 +28,3 @@ describe("scaling utilities", () => {
     expect(roundQuantity(1.999)).toBe(2);
   });
 });
-

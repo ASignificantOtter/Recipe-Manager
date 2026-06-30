@@ -53,4 +53,3 @@ export function getIngredientDensity(name: string): number | undefined {
 export function getSupportedDensityIngredients() {
   return INGREDIENT_DENSITY_ENTRIES.map((entry) => entry.canonicalName);
 }
-
