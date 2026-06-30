@@ -7,6 +7,9 @@ A modern, multi-user recipe management application built with Next.js, React, Ty
 - Added recipe search and filtering on the Recipes page
 - New filters include name search, dietary tags, max prep time, and max cook time
 - Added a one-click "Clear all filters" action
+- Expanded ingredient density support with alias-aware normalization (onion, carrot, baking powder, yeast, etc.)
+- Added recipe scaling controls on recipe detail/edit pages with servings-aware shopping list aggregation
+- Added estimated nutrition summaries (calories/macros/micros) with serving-based scaling
 - **Shared recipes and collaborative meal planning**
   - Mark any recipe as **public** to make it discoverable by all RecipeHub users
   - Share individual recipes directly with specific users by email
@@ -50,6 +53,14 @@ A modern, multi-user recipe management application built with Next.js, React, Ty
   - Density-based conversions: automatically converts volume to mass for known ingredients (sugar, flour, butter, milk, olive oil, etc.)
   - Per-ingredient canonical/original toggle: users can switch between original and normalized quantities
   - Bulk normalization: normalize all ingredients at once with one click
+- **Recipe Scaling**
+  - Scale recipe ingredient quantities to a target serving count from recipe detail and edit views
+  - Preserves stored base ingredient values while showing scaled previews
+  - Shopping list aggregation now respects recipe base servings vs requested meal-plan servings
+- **Nutritional Information (Estimated)**
+  - Per-ingredient nutrition matching with resilient fallback for unknown ingredients
+  - Recipe total and per-serving nutrition summaries (calories, protein, carbs, fat, fiber, sugar, sodium)
+  - Nutrition totals stay synchronized with serving-based scaling
 - **Meal Planning**: Create weekly meal plans and assign recipes to specific days
 - **Shopping List Generation**: Automatically aggregate ingredients from all recipes in a meal plan with smart quantity combining
 - **Multi-User Support**: Each user has their own isolated recipes and meal plans
@@ -409,15 +420,15 @@ Completed Features:
 - ✅ Advanced file parsing for recipe extraction (.docx, .pdf, .jpg with OCR)
 - ✅ Ingredient parsing and normalization with unit standardization
 - ✅ Density-based volume-to-mass conversions
+- ✅ Expanded ingredient density table with alias-aware matching
 - ✅ Per-ingredient canonical/original toggle UI
 - ✅ Advanced recipe search and filtering (by name, dietary tags, and time)
 - ✅ Shared recipes and collaborative meal planning
+- ✅ Recipe scaling with servings-aware quantity calculations
+- ✅ Nutritional information integration with per-serving summaries
 
 Planned Features:
 
-- [ ] Expand ingredient density table (onion, carrot, baking powder, yeast, etc.)
-- [ ] Recipe scaling (dynamically adjust servings and ingredient quantities)
-- [ ] Nutritional information integration (calories, macros, micros per serving)
 - [ ] Extended search and filtering (by ingredients, pantry match, advanced facets)
 - [ ] Recipe ratings, reviews, and community library
 - [ ] Customizable dietary preference profiles

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { calculateRecipeNutrition } from "@/lib/nutrition/calculate";
 
 const updateRecipeSchema = z.object({
   name: z.string().min(1).optional(),
@@ -68,7 +69,14 @@ export async function GET(
       }
     }
 
-    return NextResponse.json(recipe);
+    const safeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+    let nutrition = null;
+    try {
+      nutrition = calculateRecipeNutrition(safeIngredients, recipe.servings);
+    } catch {
+      nutrition = null;
+    }
+    return NextResponse.json({ ...recipe, nutrition });
   } catch (error) {
     console.error("Error fetching recipe:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

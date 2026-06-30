@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useRecipe, useRecipeSharing } from "@/lib/hooks/useSWR";
 import { scaleQuantity, sanitizeServingCount } from "@/lib/utils/scaling";
+import { scaleNutritionForServings } from "@/lib/nutrition/calculate";
 
 interface Recipe {
   id: string;
@@ -25,6 +26,29 @@ interface Recipe {
     unit: string;
     notes?: string;
   }>;
+  nutrition?: {
+    total: {
+      calories: number;
+      proteinG: number;
+      carbsG: number;
+      fatG: number;
+      fiberG: number;
+      sugarG: number;
+      sodiumMg: number;
+    };
+    perServing: {
+      calories: number;
+      proteinG: number;
+      carbsG: number;
+      fatG: number;
+      fiberG: number;
+      sugarG: number;
+      sodiumMg: number;
+    };
+    baseServings: number;
+    matchedIngredientCount: number;
+    unmatchedIngredients: string[];
+  };
 }
 
 function RecipeSharePanel({ recipeId }: { recipeId: string }) {
@@ -218,6 +242,11 @@ export default function RecipeDetailPage() {
     }));
   }, [recipe, baseServings, targetServings]);
 
+  const scaledNutrition = useMemo(() => {
+    if (!recipe?.nutrition) return null;
+    return scaleNutritionForServings(recipe.nutrition, targetServings);
+  }, [recipe?.nutrition, targetServings]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
@@ -379,6 +408,31 @@ export default function RecipeDetailPage() {
             </div>
 
             <div>
+              {scaledNutrition && (
+                <div className="mb-6 rounded-lg border-2 border-[var(--border)] bg-[var(--accent)]/5 p-4">
+                  <h3 className="text-lg font-bold text-[var(--foreground)] mb-2">Nutrition</h3>
+                  <p className="text-xs text-[var(--foreground)] opacity-70 mb-2">
+                    Estimated for {scaledNutrition.targetServings} servings
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <p><span className="font-semibold">Calories:</span> {scaledNutrition.total.calories}</p>
+                    <p><span className="font-semibold">Protein:</span> {scaledNutrition.total.proteinG}g</p>
+                    <p><span className="font-semibold">Carbs:</span> {scaledNutrition.total.carbsG}g</p>
+                    <p><span className="font-semibold">Fat:</span> {scaledNutrition.total.fatG}g</p>
+                    <p><span className="font-semibold">Fiber:</span> {scaledNutrition.total.fiberG}g</p>
+                    <p><span className="font-semibold">Sodium:</span> {scaledNutrition.total.sodiumMg}mg</p>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--foreground)] opacity-70">
+                    Per serving: {recipe.nutrition?.perServing.calories} kcal
+                  </p>
+                  {recipe.nutrition && recipe.nutrition.unmatchedIngredients.length > 0 && (
+                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                      Missing nutrition match: {recipe.nutrition.unmatchedIngredients.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <h2 className="text-2xl font-bold text-[var(--foreground)] mb-6">Instructions</h2>
               <div className="bg-[var(--accent)]/5 rounded-lg p-6 text-[var(--foreground)]">
                 <p className="whitespace-pre-wrap leading-relaxed">

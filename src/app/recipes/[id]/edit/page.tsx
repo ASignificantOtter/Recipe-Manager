@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { sanitizeServingCount, scaleQuantity } from "@/lib/utils/scaling";
+import { calculateRecipeNutrition, scaleNutritionForServings } from "@/lib/nutrition/calculate";
 
 interface Ingredient {
   id?: string;
@@ -170,6 +171,22 @@ export default function EditRecipePage() {
     () => sanitizeServingCount(Number(formData.servings) || 1),
     [formData.servings]
   );
+  const nutritionSummary = useMemo(
+    () =>
+      calculateRecipeNutrition(
+        ingredients.map((ingredient) => ({
+          name: ingredient.name,
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+        })),
+        baseServings
+      ),
+    [ingredients, baseServings]
+  );
+  const scaledNutrition = useMemo(
+    () => scaleNutritionForServings(nutritionSummary, targetServings),
+    [nutritionSummary, targetServings]
+  );
 
   if (isLoading) {
     return (
@@ -252,6 +269,23 @@ export default function EditRecipePage() {
                     <span className="text-sm text-[var(--foreground)] opacity-70">
                       Base servings in recipe: {baseServings}
                     </span>
+                  </div>
+
+                  <div className="rounded-lg border-2 border-[var(--border)] bg-[var(--accent)]/5 p-4">
+                    <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">
+                      Nutrition preview (estimated)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-[var(--foreground)]">
+                      <p><span className="font-semibold">Calories:</span> {scaledNutrition.total.calories}</p>
+                      <p><span className="font-semibold">Protein:</span> {scaledNutrition.total.proteinG}g</p>
+                      <p><span className="font-semibold">Carbs:</span> {scaledNutrition.total.carbsG}g</p>
+                      <p><span className="font-semibold">Fat:</span> {scaledNutrition.total.fatG}g</p>
+                    </div>
+                    {nutritionSummary.unmatchedIngredients.length > 0 && (
+                      <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                        Missing nutrition match: {nutritionSummary.unmatchedIngredients.join(", ")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
