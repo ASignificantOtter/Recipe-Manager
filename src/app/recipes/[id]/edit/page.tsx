@@ -93,9 +93,11 @@ export default function EditRecipePage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    const isNumericField =
+      name === "prepTime" || name === "cookTime" || name === "servings";
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: isNumericField ? (value === "" ? "" : Number(value)) : value,
     }));
   };
 
