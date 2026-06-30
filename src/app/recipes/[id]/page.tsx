@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useRecipe, useRecipeSharing } from "@/lib/hooks/useSWR";
+import { scaleQuantity, sanitizeServingCount } from "@/lib/utils/scaling";
 
 interface Recipe {
   id: string;
@@ -179,6 +180,7 @@ export default function RecipeDetailPage() {
   
   const { recipe, isLoading, isError } = useRecipe(id);
   const [showShare, setShowShare] = useState(false);
+  const [targetServings, setTargetServings] = useState<number>(1);
 
   const handleDelete = useCallback(async () => {
     if (!confirm("Are you sure you want to delete this recipe?")) return;
@@ -200,6 +202,21 @@ export default function RecipeDetailPage() {
 
   const error = isError ? "Failed to load recipe" : null;
   const isOwner = session?.user?.id && recipe?.userId === session.user.id;
+  const baseServings = sanitizeServingCount(recipe?.servings);
+
+  useEffect(() => {
+    if (recipe?.servings && recipe.servings > 0) {
+      setTargetServings(recipe.servings);
+    }
+  }, [recipe?.servings]);
+
+  const scaledIngredients = useMemo(() => {
+    if (!recipe) return [];
+    return recipe.ingredients.map((ingredient) => ({
+      ...ingredient,
+      scaledQuantity: scaleQuantity(ingredient.quantity, baseServings, targetServings),
+    }));
+  }, [recipe, baseServings, targetServings]);
 
   if (isLoading) {
     return (
@@ -324,14 +341,32 @@ export default function RecipeDetailPage() {
             )}
           </div>
 
+          <div className="mb-8 rounded-lg border-2 border-[var(--border)] bg-[var(--primary)]/5 p-4">
+            <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+              Scale ingredients to servings
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                value={targetServings}
+                onChange={(e) => setTargetServings(Math.max(1, Number(e.target.value) || 1))}
+                className="w-28 rounded-lg border-2 border-[var(--border)] px-3 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+              />
+              <span className="text-sm text-[var(--foreground)] opacity-70">
+                Base recipe servings: {baseServings}
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-8">
             <div>
               <h2 className="text-2xl font-bold text-[var(--foreground)] mb-6">Ingredients</h2>
               <ul className="space-y-3">
-                {recipe.ingredients.map((ingredient: { id: string; name: string; quantity: number; unit: string; notes?: string }) => (
+                {scaledIngredients.map((ingredient: { id: string; name: string; quantity: number; scaledQuantity: number; unit: string; notes?: string }) => (
                   <li key={ingredient.id} className="bg-[var(--primary)]/5 rounded-lg p-4 text-[var(--foreground)]">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-[var(--primary)]">{ingredient.quantity}</span>
+                      <span className="font-bold text-[var(--primary)]">{ingredient.scaledQuantity}</span>
                       <span className="font-semibold text-[var(--primary)]">{ingredient.unit}</span>
                       <span className="font-medium">{ingredient.name}</span>
                     </div>

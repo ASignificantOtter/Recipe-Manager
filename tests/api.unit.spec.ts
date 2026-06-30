@@ -704,6 +704,42 @@ describe("API Integration - Meal Plans", () => {
       expect(pastaItem.quantity).toBe(3); // 1 + 2
     });
 
+    it("scales shopping list quantities by recipe servings", async () => {
+      const mockMealPlan = {
+        id: "plan-1",
+        userId: "test-user-1",
+        name: "Plan",
+        days: [
+          {
+            id: "day-1",
+            recipes: [
+              {
+                id: "mp-recipe-1",
+                serveCount: 4,
+                recipe: {
+                  id: "recipe-1",
+                  servings: 2,
+                  ingredients: [{ name: "rice", quantity: 1, unit: "cup" }],
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      (prisma.mealPlan.findUnique as any).mockResolvedValue(mockMealPlan);
+
+      const res = await getShoppingList(
+        new NextRequest("http://localhost/api/meal-plans/plan-1/shopping-list"),
+        { params: Promise.resolve({ id: "plan-1" }) }
+      );
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      const riceItem = body.shoppingList.find((item: any) => item.name === "rice");
+      expect(riceItem.quantity).toBe(2); // (target servings 4 / base servings 2) * 1 cup
+    });
+
     it("prevents unauthorized access", async () => {
       const mockMealPlan = {
         id: "plan-1",

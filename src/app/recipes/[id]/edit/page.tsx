@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { sanitizeServingCount, scaleQuantity } from "@/lib/utils/scaling";
 
 interface Ingredient {
   id?: string;
@@ -24,6 +25,7 @@ export default function EditRecipePage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: "", quantity: 0, unit: "", notes: "" },
   ]);
+  const [targetServings, setTargetServings] = useState<number>(1);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -39,9 +41,9 @@ export default function EditRecipePage() {
 
   useEffect(() => {
     fetchRecipe();
-  }, [id]);
+  }, [fetchRecipe]);
 
-  const fetchRecipe = async () => {
+  const fetchRecipe = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/recipes/${id}`);
@@ -60,8 +62,9 @@ export default function EditRecipePage() {
         notes: data.notes || "",
         dietaryTags: data.dietaryTags || [],
       });
+      setTargetServings(data.servings || 1);
       setIngredients(
-        data.ingredients.map((ing: any) => ({
+        data.ingredients.map((ing: { id: string; name: string; quantity: number; unit: string; notes?: string | null }) => ({
           id: ing.id,
           name: ing.name,
           quantity: ing.quantity,
@@ -75,7 +78,7 @@ export default function EditRecipePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -83,7 +86,7 @@ export default function EditRecipePage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "prepTime" || name === "cookTime" || name === "servings" ? parseInt(value) || "" : value,
+      [name]: value,
     }));
   };
 
@@ -118,6 +121,12 @@ export default function EditRecipePage() {
     setIngredients(ingredients.filter((_, i) => i !== index));
   };
 
+  const parseOptionalNumber = (value: string) => {
+    if (!value.trim()) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -137,9 +146,9 @@ export default function EditRecipePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          prepTime: formData.prepTime ? parseInt(formData.prepTime as any) : null,
-          cookTime: formData.cookTime ? parseInt(formData.cookTime as any) : null,
-          servings: formData.servings ? parseInt(formData.servings as any) : null,
+          prepTime: parseOptionalNumber(String(formData.prepTime)),
+          cookTime: parseOptionalNumber(String(formData.cookTime)),
+          servings: parseOptionalNumber(String(formData.servings)),
           ingredients: validIngredients,
         }),
       });
@@ -156,6 +165,11 @@ export default function EditRecipePage() {
       setIsSaving(false);
     }
   };
+
+  const baseServings = useMemo(
+    () => sanitizeServingCount(Number(formData.servings) || 1),
+    [formData.servings]
+  );
 
   if (isLoading) {
     return (
@@ -221,6 +235,24 @@ export default function EditRecipePage() {
                     min="0"
                     className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                   />
+                </div>
+
+                <div className="rounded-lg border-2 border-[var(--border)] bg-[var(--primary)]/5 p-4">
+                  <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+                    Scale ingredient preview to servings
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={1}
+                      value={targetServings}
+                      onChange={(e) => setTargetServings(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-28 rounded-lg border-2 border-[var(--border)] px-3 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                    />
+                    <span className="text-sm text-[var(--foreground)] opacity-70">
+                      Base servings in recipe: {baseServings}
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -308,6 +340,15 @@ export default function EditRecipePage() {
                       min="0"
                       className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                     />
+                  </div>
+
+                  <div className="w-36">
+                    <label className="block text-sm font-semibold text-[var(--foreground)]">
+                      Scaled Qty
+                    </label>
+                    <div className="mt-2 rounded-lg border-2 border-[var(--border)] bg-white/60 px-3 py-2 text-sm font-semibold text-[var(--primary)] dark:bg-slate-700">
+                      {scaleQuantity(ingredient.quantity || 0, baseServings, targetServings)}
+                    </div>
                   </div>
 
                   <div className="w-28">
