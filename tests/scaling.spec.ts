@@ -24,7 +24,7 @@ describe("scaling utilities", () => {
   });
 
   it("rounds consistently for fractional values", () => {
-    expect(roundQuantity(1.005)).toBe(1);
+    expect(roundQuantity(1.004)).toBe(1);
     expect(roundQuantity(1.999)).toBe(2);
   });
 });

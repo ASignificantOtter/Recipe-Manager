@@ -96,9 +96,9 @@ function divideNutrition(value: NutritionProfile, divisor: number): NutritionPro
 function toWeightInGrams(ingredient: IngredientInput): number | null {
   const canonicalUnit = ingredient.canonicalUnit?.toLowerCase() || "";
   const canonicalQuantity = ingredient.canonicalQuantity ?? null;
-  if (canonicalQuantity && canonicalUnit === "g") return canonicalQuantity;
+  if (canonicalQuantity && canonicalQuantity > 0 && canonicalUnit === "g") return canonicalQuantity;
 
-  if (canonicalQuantity && canonicalUnit === "ml") {
+  if (canonicalQuantity && canonicalQuantity > 0 && canonicalUnit === "ml") {
     const density = getIngredientDensity(ingredient.name);
     return density ? roundQuantity(canonicalQuantity * density) : null;
   }
