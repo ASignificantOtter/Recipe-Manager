@@ -1,3 +1,5 @@
+import { normalizeIngredientName } from "@/lib/utils/ingredientName";
+
 type IngredientDensityEntry = {
   canonicalName: string;
   density: number; // g/ml
@@ -20,25 +22,17 @@ const INGREDIENT_DENSITY_ENTRIES: IngredientDensityEntry[] = [
   { canonicalName: "brown sugar", density: 0.72, aliases: ["light brown sugar", "dark brown sugar"] },
 ];
 
-const normalizeIngredientText = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
 const DENSITY_LOOKUP = new Map<string, number>();
 
 for (const entry of INGREDIENT_DENSITY_ENTRIES) {
-  DENSITY_LOOKUP.set(normalizeIngredientText(entry.canonicalName), entry.density);
+  DENSITY_LOOKUP.set(normalizeIngredientName(entry.canonicalName), entry.density);
   for (const alias of entry.aliases) {
-    DENSITY_LOOKUP.set(normalizeIngredientText(alias), entry.density);
+    DENSITY_LOOKUP.set(normalizeIngredientName(alias), entry.density);
   }
 }
 
 export function getIngredientDensity(name: string): number | undefined {
-  const normalized = normalizeIngredientText(name);
+  const normalized = normalizeIngredientName(name);
   if (!normalized) return undefined;
 
   const exact = DENSITY_LOOKUP.get(normalized);

@@ -1,4 +1,5 @@
 import type { NutritionProfile } from "@/lib/nutrition/types";
+import { normalizeIngredientName } from "@/lib/utils/ingredientName";
 
 type NutritionDbEntry = {
   canonicalName: string;
@@ -69,25 +70,17 @@ export const NUTRITION_DB: NutritionDbEntry[] = [
   },
 ];
 
-const normalizeName = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
 const lookup = new Map<string, NutritionProfile>();
 
 for (const entry of NUTRITION_DB) {
-  lookup.set(normalizeName(entry.canonicalName), entry.per100g);
+  lookup.set(normalizeIngredientName(entry.canonicalName), entry.per100g);
   for (const alias of entry.aliases) {
-    lookup.set(normalizeName(alias), entry.per100g);
+    lookup.set(normalizeIngredientName(alias), entry.per100g);
   }
 }
 
 export function getNutritionProfileByIngredient(name: string): NutritionProfile | null {
-  const normalized = normalizeName(name);
+  const normalized = normalizeIngredientName(name);
   if (!normalized) return null;
 
   const exact = lookup.get(normalized);

@@ -423,7 +423,7 @@ export default function RecipeDetailPage() {
                     <p><span className="font-semibold">Sodium:</span> {scaledNutrition.total.sodiumMg}mg</p>
                   </div>
                   <p className="mt-2 text-xs text-[var(--foreground)] opacity-70">
-                    Per serving: {recipe.nutrition?.perServing.calories} kcal
+                    Per serving: {scaledNutrition.perServing.calories} kcal
                   </p>
                   {recipe.nutrition && recipe.nutrition.unmatchedIngredients.length > 0 && (
                     <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
