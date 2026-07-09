@@ -2,6 +2,21 @@
 
 A modern, multi-user recipe management application built with Next.js, React, TypeScript, and PostgreSQL. Manage your recipes, create meal plans, and generate shopping lists effortlessly.
 
+## Built with Agentic AI Workflows
+
+This project was developed using **agentic AI workflows** as a deliberate demonstration of how modern AI tooling can be leveraged to build production-quality software. Rather than treating AI as an autocomplete tool, the development process used AI agents to autonomously plan, scaffold, implement, and iterate on features across the full stack.
+
+**My role throughout the project included:**
+
+- **Architecture & Design**: Defining the overall system design, data models, and technology choices (Next.js, Prisma, NextAuth, PostgreSQL). All high-level decisions — from API structure to database schema to authentication strategy — were driven by me.
+- **Prompting & Direction**: Crafting precise, context-rich prompts to guide AI agents through complex, multi-step implementation tasks. Effective prompting required deep understanding of the codebase and clear articulation of requirements, constraints, and edge cases.
+- **Code Review**: Reviewing every AI-generated change for correctness, security, maintainability, and alignment with the intended design. No code was merged without scrutiny.
+- **Testing & Validation**: Defining test requirements, evaluating test coverage, and manually verifying application behavior end-to-end. The 146-test suite reflects requirements I specified and validated.
+- **Iteration & Debugging**: Identifying issues in AI output, diagnosing root causes, and directing targeted fixes — often requiring several rounds of prompting and review.
+- **Integration**: Ensuring all independently developed features worked together cohesively, resolving conflicts, and maintaining consistency across the codebase.
+
+This workflow demonstrates that the bottleneck in AI-assisted development is **not** the ability to write code — it's the engineering judgment, system thinking, and product sense needed to direct AI effectively and validate its output. This project is a showcase of those skills.
+
 ## What's New
 
 - Added recipe search and filtering on the Recipes page
