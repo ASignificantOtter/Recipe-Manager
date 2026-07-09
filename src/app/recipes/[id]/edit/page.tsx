@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { sanitizeServingCount, scaleQuantity } from "@/lib/utils/scaling";
+import { calculateRecipeNutrition, scaleNutritionForServings } from "@/lib/nutrition/calculate";
 
 interface Ingredient {
   id?: string;
@@ -12,6 +14,14 @@ interface Ingredient {
   unit: string;
   notes: string;
 }
+
+type ApiIngredient = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  notes?: string | null;
+};
 
 export default function EditRecipePage() {
   const params = useParams();
@@ -24,6 +34,7 @@ export default function EditRecipePage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: "", quantity: 0, unit: "", notes: "" },
   ]);
+  const [targetServings, setTargetServings] = useState<number>(1);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -38,52 +49,55 @@ export default function EditRecipePage() {
   const dietaryOptions = ["vegetarian", "vegan", "gluten-free", "dairy-free", "nut-free"];
 
   useEffect(() => {
+    const fetchRecipe = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/recipes/${id}`);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch recipe");
+        }
+
+        const data = await response.json();
+        setFormData({
+          name: data.name,
+          instructions: data.instructions,
+          prepTime: data.prepTime?.toString() || "",
+          cookTime: data.cookTime?.toString() || "",
+          servings: data.servings?.toString() || "",
+          notes: data.notes || "",
+          dietaryTags: data.dietaryTags || [],
+        });
+        setTargetServings(sanitizeServingCount(data.servings));
+        setIngredients(
+          data.ingredients.map((ing: ApiIngredient) => ({
+            id: ing.id,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            notes: ing.notes || "",
+          }))
+        );
+      } catch (err) {
+        setError("Failed to load recipe");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchRecipe();
   }, [id]);
-
-  const fetchRecipe = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/recipes/${id}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch recipe");
-      }
-
-      const data = await response.json();
-      setFormData({
-        name: data.name,
-        instructions: data.instructions,
-        prepTime: data.prepTime?.toString() || "",
-        cookTime: data.cookTime?.toString() || "",
-        servings: data.servings?.toString() || "",
-        notes: data.notes || "",
-        dietaryTags: data.dietaryTags || [],
-      });
-      setIngredients(
-        data.ingredients.map((ing: any) => ({
-          id: ing.id,
-          name: ing.name,
-          quantity: ing.quantity,
-          unit: ing.unit,
-          notes: ing.notes || "",
-        }))
-      );
-    } catch (err) {
-      setError("Failed to load recipe");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    const isNumericField =
+      name === "prepTime" || name === "cookTime" || name === "servings";
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "prepTime" || name === "cookTime" || name === "servings" ? parseInt(value) || "" : value,
+      [name]: isNumericField ? (value === "" ? "" : Number(value)) : value,
     }));
   };
 
@@ -118,6 +132,12 @@ export default function EditRecipePage() {
     setIngredients(ingredients.filter((_, i) => i !== index));
   };
 
+  const parseOptionalNumber = (value: string) => {
+    if (!value.trim()) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -137,9 +157,9 @@ export default function EditRecipePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          prepTime: formData.prepTime ? parseInt(formData.prepTime as any) : null,
-          cookTime: formData.cookTime ? parseInt(formData.cookTime as any) : null,
-          servings: formData.servings ? parseInt(formData.servings as any) : null,
+          prepTime: parseOptionalNumber(String(formData.prepTime)),
+          cookTime: parseOptionalNumber(String(formData.cookTime)),
+          servings: parseOptionalNumber(String(formData.servings)),
           ingredients: validIngredients,
         }),
       });
@@ -156,6 +176,27 @@ export default function EditRecipePage() {
       setIsSaving(false);
     }
   };
+
+  const baseServings = useMemo(
+    () => sanitizeServingCount(Number(formData.servings) || 1),
+    [formData.servings]
+  );
+  const nutritionSummary = useMemo(
+    () =>
+      calculateRecipeNutrition(
+        ingredients.map((ingredient) => ({
+          name: ingredient.name,
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+        })),
+        baseServings
+      ),
+    [ingredients, baseServings]
+  );
+  const scaledNutrition = useMemo(
+    () => scaleNutritionForServings(nutritionSummary, targetServings),
+    [nutritionSummary, targetServings]
+  );
 
   if (isLoading) {
     return (
@@ -236,7 +277,6 @@ export default function EditRecipePage() {
                     className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-[var(--foreground)]">
                     Servings
@@ -250,6 +290,41 @@ export default function EditRecipePage() {
                     className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                   />
                 </div>
+              </div>
+
+              <div className="rounded-lg border-2 border-[var(--border)] bg-[var(--primary)]/5 p-4">
+                <label className="block text-sm font-semibold text-[var(--foreground)] mb-2">
+                  Scale ingredient preview to servings
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    value={targetServings}
+                    onChange={(e) => setTargetServings(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-28 rounded-lg border-2 border-[var(--border)] px-3 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
+                  />
+                  <span className="text-sm text-[var(--foreground)] opacity-70">
+                    Base servings in recipe: {baseServings}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border-2 border-[var(--border)] bg-[var(--accent)]/5 p-4">
+                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">
+                  Nutrition preview (estimated)
+                </h3>
+                <div className="grid grid-cols-2 gap-2 text-sm text-[var(--foreground)]">
+                  <p><span className="font-semibold">Calories:</span> {scaledNutrition.total.calories}</p>
+                  <p><span className="font-semibold">Protein:</span> {scaledNutrition.total.proteinG}g</p>
+                  <p><span className="font-semibold">Carbs:</span> {scaledNutrition.total.carbsG}g</p>
+                  <p><span className="font-semibold">Fat:</span> {scaledNutrition.total.fatG}g</p>
+                </div>
+                {nutritionSummary.unmatchedIngredients.length > 0 && (
+                  <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    Missing nutrition match: {nutritionSummary.unmatchedIngredients.join(", ")}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -308,6 +383,15 @@ export default function EditRecipePage() {
                       min="0"
                       className="mt-2 block w-full rounded-lg border-2 border-[var(--border)] px-4 py-2 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all"
                     />
+                  </div>
+
+                  <div className="w-36">
+                    <label className="block text-sm font-semibold text-[var(--foreground)]">
+                      Scaled Qty
+                    </label>
+                    <div className="mt-2 rounded-lg border-2 border-[var(--border)] bg-white/60 px-3 py-2 text-sm font-semibold text-[var(--primary)] dark:bg-slate-700">
+                      {scaleQuantity(ingredient.quantity || 0, baseServings, targetServings)}
+                    </div>
                   </div>
 
                   <div className="w-28">

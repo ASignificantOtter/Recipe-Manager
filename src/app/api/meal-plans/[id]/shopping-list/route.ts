@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { roundQuantity, getScalingMultiplier } from "@/lib/utils/scaling";
 
 interface AggregatedIngredient {
   name: string;
@@ -54,14 +55,19 @@ export async function GET(
       day.recipes.forEach((mealPlanRecipe) => {
         mealPlanRecipe.recipe.ingredients.forEach((ingredient) => {
           const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
+          const multiplier = getScalingMultiplier(
+            mealPlanRecipe.recipe.servings,
+            mealPlanRecipe.serveCount
+          );
+          const scaledQuantity = roundQuantity(ingredient.quantity * multiplier);
           
           if (ingredientMap.has(key)) {
             const existing = ingredientMap.get(key)!;
-            existing.quantity += ingredient.quantity * mealPlanRecipe.serveCount;
+            existing.quantity = roundQuantity(existing.quantity + scaledQuantity);
           } else {
             ingredientMap.set(key, {
               name: ingredient.name,
-              quantity: ingredient.quantity * mealPlanRecipe.serveCount,
+              quantity: scaledQuantity,
               unit: ingredient.unit,
               notes: ingredient.notes,
             });
